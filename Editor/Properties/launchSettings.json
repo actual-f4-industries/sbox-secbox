@@ -1,9 +1,0 @@
-{
-  "profiles": {
-    "Editor": {
-      "commandName": "Executable",
-      "executablePath": "../../../../../../../../../Program Files (x86)/Steam/steamapps/common/sbox/sbox-dev.exe",
-      "commandLineArgs": "-project \u0022C:\\Users\\f4\\Documents\\s\u0026box projects\\deadlock_district\\Libraries\\secbox\\secbox.sbproj\u0022"
-    }
-  }
-}
