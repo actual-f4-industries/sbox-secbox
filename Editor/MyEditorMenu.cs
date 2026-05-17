@@ -17,7 +17,7 @@ public static class MyEditorMenu
 	[EditorEvent.Frame]
 	public static void OnEnterPlayMode()
 	{
-		Log.Info("EDITOR This is executed PER FRAME EDITOR");
+		// Log.Info("EDITOR This is executed PER FRAME EDITOR");
 
 		if (Game.IsPlaying)
 		{
