@@ -7,7 +7,6 @@
 .vscode/*
 *.user
 *.suo
-*.csproj
 obj
 bin
 Properties/*
