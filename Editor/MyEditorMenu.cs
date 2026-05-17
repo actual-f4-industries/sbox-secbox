@@ -1,10 +1,27 @@
 using Editor;
+using Sandbox;
 
 public static class MyEditorMenu
 {
-	[Menu( "Editor", "secbox/My Menu Option" )]
-	public static void OpenMyMenu()
+	[Event("package.changed")]
+	public static void TestInstalledCallback()
 	{
-		EditorUtility.DisplayDialog( "It worked!", "This is being called from your library's editor code!" );
+		Log.Info("FOOBARRRRRRRRRRRRRR");
+
+		while ( 1 == 1 )
+		{
+			Log.Info("OOPS");
+		} 
+	}
+	
+	[EditorEvent.Frame]
+	public static void OnEnterPlayMode()
+	{
+		Log.Info("EDITOR This is executed PER FRAME EDITOR");
+
+		if (Game.IsPlaying)
+		{
+			// Log.Info("CAN U FEEL IT NOW MR CRABS");
+		}
 	}
 }
