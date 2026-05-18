@@ -200,6 +200,85 @@ public static class MenuItems
 		EditorUtility.DisplayDialog( "secbox: pending reviews", body );
 	}
 
+	// ============================================================
+	// Runtime monitoring (Tier B profiler + opt-in Tier A Sentinel)
+	// ============================================================
+
+	[Menu( "Editor", "secbox/Runtime Monitoring/Settings..." )]
+	public static void OpenSentinelSettings()
+	{
+		try
+		{
+			new SentinelSettingsDialog().Show();
+		}
+		catch ( System.Exception ex )
+		{
+			EditorUtility.DisplayDialog( "secbox", $"Could not open settings: {ex.Message}" );
+		}
+	}
+
+	[Menu( "Editor", "secbox/Runtime Monitoring/Install Sentinel..." )]
+	public static void InstallSentinel()
+	{
+		try
+		{
+			new SentinelInstallDialog().Show();
+		}
+		catch ( System.Exception ex )
+		{
+			EditorUtility.DisplayDialog( "secbox", $"Could not open installer dialog: {ex.Message}" );
+		}
+	}
+
+	[Menu( "Editor", "secbox/Runtime Monitoring/Show Status" )]
+	public static void ShowRuntimeMonitorStatus()
+	{
+		var cfg = SecboxConfig.Load();
+		var attached = Lifecycle.RuntimeMonitorCoordinator.IsAttached;
+		var sentinelInstalled = Lifecycle.SentinelInstaller.IsServiceInstalled();
+		var sentinelRunning = sentinelInstalled && Lifecycle.SentinelInstaller.IsServiceRunning();
+
+		string sensors = "(not attached)";
+		if ( attached )
+		{
+			try
+			{
+				var s = Bridge.RuntimeMonitorBridge.GetStatus();
+				sensors = string.Join( "\n  ",
+					s.Select( x => $"{x.Id}: {x.Status}{(string.IsNullOrEmpty(x.LastError) ? "" : " — " + x.LastError)}" ) );
+			}
+			catch ( System.Exception ex ) { sensors = $"(status query failed: {ex.Message})"; }
+		}
+
+		var lines = new[]
+		{
+			$"Tier B (profiler): {(cfg.RuntimeMonitoringEnabled ? "enabled" : "disabled")}",
+			$"Tier A (Sentinel): {(cfg.SentinelEnabled ? "enabled in config" : "disabled in config")}",
+			$"Sentinel service:  {(sentinelInstalled ? (sentinelRunning ? "installed & running" : "installed, stopped") : "NOT installed")}",
+			$"Attached:          {attached}",
+			$"Recent findings:   {Lifecycle.RuntimeMonitorCoordinator.RecentCount}",
+			"",
+			"Sensors:",
+			"  " + sensors,
+		};
+
+		EditorUtility.DisplayDialog( "secbox: runtime monitoring", string.Join( "\n", lines ), icon: attached ? "monitor_heart" : "monitor" );
+	}
+
+	[Menu( "Editor", "secbox/Runtime Monitoring/Attach Now" )]
+	public static void AttachRuntimeNow()
+	{
+		Lifecycle.RuntimeMonitorCoordinator.EnsureAttached();
+		ShowRuntimeMonitorStatus();
+	}
+
+	[Menu( "Editor", "secbox/Runtime Monitoring/Detach Now" )]
+	public static void DetachRuntimeNow()
+	{
+		Lifecycle.RuntimeMonitorCoordinator.Detach();
+		EditorUtility.DisplayDialog( "secbox", "Runtime sensors detached." );
+	}
+
 	[Menu( "Editor", "secbox/Open Trust Store File" )]
 	public static void OpenTrustStore()
 	{

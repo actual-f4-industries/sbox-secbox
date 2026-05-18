@@ -30,6 +30,14 @@ internal static class SecboxBoot
 		DiagnosticsLog.Wrap("InstallHook.Subscribe", InstallHook.Subscribe);
 		DiagnosticsLog.Wrap("RuntimeMonitor.Subscribe", RuntimeMonitor.Subscribe);
 
+		// Tier B (always) + optional Tier A (Sentinel). Both ride on the bridge
+		// to Secbox.Core — fire-and-forget so an ALC load failure here doesn't
+		// keep us from completing boot. Coordinator handles its own retries.
+		System.Threading.Tasks.Task.Run(() =>
+		{
+			DiagnosticsLog.Wrap("RuntimeMonitorCoordinator.EnsureAttached", RuntimeMonitorCoordinator.EnsureAttached);
+		});
+
 		DiagnosticsLog.Info($"[secbox] initialised. Log file: {DiagnosticsLog.FilePath}");
 	}
 }

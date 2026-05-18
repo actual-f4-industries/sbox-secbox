@@ -7,33 +7,45 @@ namespace Sandbox.SecBox.Bridge;
 //
 // SHA-256 hashes are baked in at adapter compile time — refusing any
 // downloaded blob whose hash doesn't match. To bump to a new core version:
-//   1. Build Secbox.sln Release.
-//   2. sha256sum src/Secbox.Core/bin/Release/net10.0/Secbox.Core.dll
-//   3. Update ExpectedCoreSha256 and CoreVersion here.
-//   4. Re-publish the adapter.
+//   1. Push a vX.Y.Z tag — `.github/workflows/release.yml` builds every
+//      artifact and attaches them (with a `hashes.txt` manifest) to a new
+//      GitHub Release at https://github.com/actual-f4-industries/secbox.
+//   2. Copy the SHA-256s from that hashes.txt into CoreFiles below.
+//   3. Bump CoreVersion to match the tag (with the leading `v`).
+//   4. Re-publish the adapter to the s&box Library Manager.
 //
 // Users who want to opt out of network can hand-place Secbox.Core.dll under
 // LocalCachePath and disable AutoUpdate.
 public static class CorePolicy
 {
-	public const int RequiredProtocolVersion = 1;
+	public const int RequiredProtocolVersion = 2;
 
 	// The version string is informational; identity is the SHA-256 hash.
-	public const string CoreVersion = "0.1.0-dev";
+	// MUST match the GitHub Release tag exactly — the URL construction in
+	// SecboxCoreLoader builds {BaseUrl}/{CoreVersion}/{filename}, which
+	// resolves to GitHub's canonical release-asset URL:
+	//   https://github.com/<org>/<repo>/releases/download/<tag>/<filename>
+	public const string CoreVersion = "v0.1.0-dev";
 
-	// CDN base URL. Multiple files (Secbox.Core.dll + dependencies) live at
-	// {BaseUrl}/{version}/{filename}.
-	public const string BaseUrl = "https://f4pl0.com/secbox/";
+	// GitHub Releases serve assets at
+	//   https://github.com/<org>/<repo>/releases/download/<tag>/<filename>
+	// SecboxCoreLoader appends "/{CoreVersion}/{filename}" so BaseUrl is the
+	// download prefix without the tag segment.
+	public const string BaseUrl =
+		"https://github.com/actual-f4-industries/secbox/releases/download";
 
 	// Files the loader downloads in order. Hash pin for each.
-	// PLACEHOLDER hashes — replace with real SHA-256 values after publishing.
 	public static readonly (string FileName, string Sha256)[] CoreFiles =
 	{
-		("Secbox.Core.dll",     "0000000000000000000000000000000000000000000000000000000000000000"),
-		("Secbox.Contracts.dll","0000000000000000000000000000000000000000000000000000000000000000"),
-		("Secbox.Rules.dll",    "0000000000000000000000000000000000000000000000000000000000000000"),
-		("Secbox.Scanner.dll",  "0000000000000000000000000000000000000000000000000000000000000000"),
-		("Mono.Cecil.dll",      "0000000000000000000000000000000000000000000000000000000000000000"),
+		("Secbox.Core.dll",                        "4c27dfd3b9909c7812d340adb9cbe747ace94b7ab5db858b839510618c6e2c37"),
+		("Secbox.Contracts.dll",                   "fafba0a04514d3ea16deec0d22ce50a0e168296e932a001dec4600330bbceadc"),
+		("Secbox.Rules.dll",                       "ba27045ed8ec7a16c6d49164db46bea94570459924d6f62e7fd17e85a54ff9ae"),
+		("Secbox.Scanner.dll",                     "1931184d8085096449e3e486457c14d322f1c41324e90d3a6bfc9a369966ee2b"),
+		("Mono.Cecil.dll",                         "831dca77470d85cb6ffbea3072daa7a3df5b7c9fcfd9c3f43674a9be99d4bfcf"),
+		// BridgeProtocol v2 additions — runtime monitoring stack.
+		("Secbox.Sentinel.Contracts.dll",          "da477dbda2ad607d0dea91278b1db7f216b73ebc526271d8489205c2d4b71ff8"),
+		("Secbox.Sentinel.Client.dll",             "eaf11482caf17dae0d100fa30089ee6c8bb634482f55d1bcae6b84cf0c8fadfc"),
+		("Microsoft.Diagnostics.NETCore.Client.dll", "863a7b01a6ea6db9bd8df140bf0bfeed91909a5d26140e5265a8ee2344847adb"),
 	};
 
 	public static string LocalCachePath =>
