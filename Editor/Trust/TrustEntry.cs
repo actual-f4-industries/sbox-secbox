@@ -1,4 +1,5 @@
 using System;
+using Sandbox.SecBox.Bridge.Dto;
 
 namespace Sandbox.SecBox;
 

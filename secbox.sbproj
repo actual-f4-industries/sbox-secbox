@@ -1,7 +1,7 @@
 {
-  "Title": "secbox",
+  "Title": "Secbox",
   "Type": "library",
-  "Org": "local",
+  "Org": "f4industries",
   "Ident": "secbox",
   "Schema": 1,
   "IncludeSourceFiles": false,

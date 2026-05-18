@@ -1,3 +1,5 @@
+using Sandbox.SecBox.Bridge.Dto;
+
 namespace Sandbox.SecBox;
 
 // Global policy. Persisted alongside the trust store. Edit either through

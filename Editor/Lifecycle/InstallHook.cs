@@ -1,15 +1,24 @@
 using System;
 using System.Linq;
 using System.Reflection;
+using System.Threading.Tasks;
+using Editor;
+using Sandbox.SecBox.Bridge;
+using Sandbox.SecBox.Bridge.Dto;
+using DiagnosticsLog = Sandbox.SecBox.Bridge.DiagnosticsLog;
 
 namespace Sandbox.SecBox.Lifecycle;
 
 // Subscribes to PackageManager.OnPackageInstalledToContext via reflection
-// (PackageManager is internal, no public alternative for code packages).
+// (PackageManager is internal — no public alternative for code packages).
 // Tries to insert at the front of the delegate chain so we run before
-// ToolsDll/GameInstanceDll — which lets a synchronous scan + dialog block
-// before assembly load. Falls back to appending if the field-level trick
-// fails on a future engine version.
+// ToolsDll/GameInstanceDll, giving us a window to scan + prompt before the
+// new package's assemblies load. Falls back to appending if the field-level
+// trick fails on a future engine version.
+//
+// Scans are delegated to Secbox.Core via SecboxCoreClient — secbox.editor.dll
+// itself is just an adapter; all heavy detection logic lives in the
+// downloaded core DLL.
 public static class InstallHook
 {
 	const string EventName = "OnPackageInstalledToContext";
@@ -17,160 +26,179 @@ public static class InstallHook
 
 	public static void Subscribe()
 	{
-		if ( subscribed ) return;
+		if (subscribed) return;
 
 		var pmType = ReflectionHelpers.PackageManagerType();
-		if ( pmType == null )
+		if (pmType == null)
 		{
 			global::Sandbox.Internal.GlobalGameNamespace.Log.Warning(
-				"[secbox] PackageManager type not found — install hook disabled" );
+				"[secbox] PackageManager type not found — install hook disabled");
 			return;
 		}
 
-		// Build the delegate matching Action<ActivePackage, string>. We can't
-		// name ActivePackage statically (internal), so use Action<object,string>
-		// and rely on runtime variance via DynamicInvoke — actually no, the
-		// CLR rejects that. Use Delegate.CreateDelegate against the event's
-		// real type.
-		var ev = pmType.GetEvent( EventName, BindingFlags.Public | BindingFlags.Static );
-		if ( ev == null )
+		var ev = pmType.GetEvent(EventName, BindingFlags.Public | BindingFlags.Static);
+		if (ev == null)
 		{
 			global::Sandbox.Internal.GlobalGameNamespace.Log.Warning(
-				$"[secbox] {EventName} event not found on PackageManager — install hook disabled" );
+				$"[secbox] {EventName} event not found on PackageManager — install hook disabled");
 			return;
 		}
 
-		var ourMethod = typeof( InstallHook ).GetMethod( nameof( OnPackageInstalled ),
-			BindingFlags.NonPublic | BindingFlags.Static );
+		var ourMethod = typeof(InstallHook).GetMethod(nameof(OnPackageInstalled),
+			BindingFlags.NonPublic | BindingFlags.Static);
 
 		Delegate handler;
-		try
-		{
-			handler = Delegate.CreateDelegate( ev.EventHandlerType, ourMethod );
-		}
-		catch ( Exception ex )
+		try { handler = Delegate.CreateDelegate(ev.EventHandlerType, ourMethod); }
+		catch (Exception ex)
 		{
 			global::Sandbox.Internal.GlobalGameNamespace.Log.Warning(
-				$"[secbox] could not bind install handler: {ex.Message}" );
+				$"[secbox] could not bind install handler: {ex.Message}");
 			return;
 		}
 
-		if ( ReflectionHelpers.InsertFirstInChain( pmType, EventName, handler ) )
+		if (ReflectionHelpers.InsertFirstInChain(pmType, EventName, handler))
 		{
 			global::Sandbox.Internal.GlobalGameNamespace.Log.Info(
-				"[secbox] install hook armed (first-in-chain)" );
+				"[secbox] install hook armed (first-in-chain)");
 		}
-		else if ( ReflectionHelpers.AppendToChain( pmType, EventName, handler ) )
+		else if (ReflectionHelpers.AppendToChain(pmType, EventName, handler))
 		{
 			global::Sandbox.Internal.GlobalGameNamespace.Log.Warning(
-				"[secbox] install hook armed (appended — pre-load gating may not work)" );
+				"[secbox] install hook armed (appended — pre-load gating may not work)");
 		}
 		else
 		{
 			global::Sandbox.Internal.GlobalGameNamespace.Log.Warning(
-				"[secbox] install hook could not subscribe; new packages will not be scanned" );
+				"[secbox] install hook could not subscribe");
 			return;
 		}
 
 		subscribed = true;
 	}
 
-	// Engine calls this with (ActivePackage, tag). ActivePackage is internal
-	// to Sandbox.Engine, so we receive it as object and reflect for properties.
-	static void OnPackageInstalled( object activePackage, string tag )
+	static void OnPackageInstalled(object activePackage, string tag)
 	{
-		try
+		DiagnosticsLog.Trace($"InstallHook.OnPackageInstalled: tag={tag}");
+		try { HandleInstall(activePackage, tag); }
+		catch (Exception ex)
 		{
-			HandleInstall( activePackage, tag );
+			DiagnosticsLog.Error("install handler threw", ex);
 		}
-		catch ( Exception ex )
-		{
-			global::Sandbox.Internal.GlobalGameNamespace.Log.Error(
-				$"[secbox] install handler threw: {ex.Message}\n{ex.StackTrace}" );
-		}
+		DiagnosticsLog.Trace($"InstallHook.OnPackageInstalled: end tag={tag}");
 	}
 
-	static void HandleInstall( object activePackage, string tag )
+	static void HandleInstall(object activePackage, string tag)
 	{
-		var pkg = ReflectionHelpers.GetProp( activePackage, "Package" ) as Package;
-		if ( pkg == null )
-		{
-			global::Sandbox.Internal.GlobalGameNamespace.Log.Trace(
-				$"[secbox] install handler: no Package on ActivePackage for tag={tag}" );
-			return;
-		}
+		var pkg = ReflectionHelpers.GetProp(activePackage, "Package") as Package;
+		if (pkg == null) return;
 
-		// Skip our own package and engine-internal "local" infrastructure tags
-		// that fire dozens of times during boot. Real user installs are
-		// either "game" or "tool" context.
 		var ident = pkg.FullIdent ?? pkg.Ident ?? "<unknown>";
-		if ( ident.StartsWith( "local.secbox" ) ) return;
 
-		global::Sandbox.Internal.GlobalGameNamespace.Log.Info(
-			$"[secbox] package install: ident={ident} tag={tag}" );
+		// Skip the obvious: secbox itself, engine first-party packages.
+		if (ident.StartsWith("local.secbox", StringComparison.OrdinalIgnoreCase)) return;
+		if (ident.Equals("secbox", StringComparison.OrdinalIgnoreCase)) return;
+		if (ident.StartsWith("facepunch.", StringComparison.OrdinalIgnoreCase)) return;
 
 		var projectRoot = PackageLocator.CurrentProjectRoot();
-		if ( string.IsNullOrEmpty( projectRoot ) )
+		if (string.IsNullOrEmpty(projectRoot)) return;
+
+		// Skip the project's own package — it loads under "gamemenu" / "local"
+		// tags during editor boot and would otherwise trigger a full
+		// project-root scan. The current project's ident comes from its sbproj.
+		try
 		{
-			global::Sandbox.Internal.GlobalGameNamespace.Log.Trace(
-				"[secbox] no current project — skipping scan" );
+			var currentProjIdent = Project.Current?.Package?.FullIdent
+				?? Project.Current?.Package?.Ident;
+			if (!string.IsNullOrEmpty(currentProjIdent)
+			    && ident.Equals(currentProjIdent, StringComparison.OrdinalIgnoreCase))
+			{
+				DiagnosticsLog.Trace($"skipping install of current project itself: {ident}");
+				return;
+			}
+		}
+		catch { }
+
+		// Locate the package's library folder. FolderFor only returns paths
+		// strictly under <projectRoot>/Libraries/ — engine packages and the
+		// project itself correctly return null here.
+		var folder = PackageLocator.FolderFor(pkg);
+		if (string.IsNullOrEmpty(folder))
+		{
+			DiagnosticsLog.Trace($"skipping {ident} tag={tag}: no library folder resolved (engine/external package)");
 			return;
 		}
 
-		var store = TrustStore.Load( projectRoot );
-		if ( !store.Policy.ScanOnInstall )
+		DiagnosticsLog.Info($"package install: ident={ident} tag={tag} folder={folder}");
+
+		var store = TrustStore.Load(projectRoot);
+		if (!store.Policy.ScanOnInstall) return;
+
+		// Defence-in-depth: refuse to ever scan a project-root-shaped folder
+		// even if PackageLocator slipped up.
+		if (string.Equals(folder, projectRoot, StringComparison.OrdinalIgnoreCase))
 		{
-			global::Sandbox.Internal.GlobalGameNamespace.Log.Trace(
-				"[secbox] ScanOnInstall disabled — skipping" );
+			DiagnosticsLog.Warn($"refusing to scan project root for {ident}");
 			return;
 		}
 
-		var folder = PackageLocator.FolderFor( pkg );
-		if ( string.IsNullOrEmpty( folder ) )
+		var hash = PackageHasher.HashFolder(folder);
+		var existing = store.Find(hash);
+		if (existing != null)
 		{
-			global::Sandbox.Internal.GlobalGameNamespace.Log.Trace(
-				$"[secbox] couldn't locate package folder for {ident} — skipping scan" );
-			return;
-		}
-
-		var hash = PackageHasher.HashFolder( folder );
-		var existing = store.Find( hash );
-		if ( existing != null )
-		{
-			switch ( existing.Decision )
+			switch (existing.Decision)
 			{
 				case Decision.TrustAlways:
 					global::Sandbox.Internal.GlobalGameNamespace.Log.Info(
-						$"[secbox] {ident} matches TrustAlways entry; allowing" );
+						$"[secbox] {ident} matches TrustAlways entry; allowing");
 					return;
 				case Decision.Block:
 					global::Sandbox.Internal.GlobalGameNamespace.Log.Error(
-						$"[secbox] {ident} matches Block entry; should refuse install (uninstall path TBD in task #5b)" );
+						$"[secbox] {ident} matches Block entry; refuse-install path TBD");
 					return;
 			}
 		}
 
-		var scanner = new PackageScanner();
-		var findings = scanner.ScanFolder( folder ).ToList();
+		// Bridge call. Runs on a thread-pool thread (Task.Run) to break any
+		// SynchronizationContext capture the engine thread might have set —
+		// without this, the async continuations inside EnsureReadyAsync /
+		// the Core's internal GetAwaiter().GetResult() deadlock against the
+		// hook thread we'd be blocking here.
+		try
+		{
+			Task.Run(() => SecboxCoreClient.EnsureReadyAsync()).GetAwaiter().GetResult();
+		}
+		catch (Exception ex)
+		{
+			DiagnosticsLog.Error("core load failed", ex);
+			return;
+		}
 
-		var critical = findings.Count( f => f.Severity == Severity.Critical );
-		var high = findings.Count( f => f.Severity == Severity.High );
-		var medium = findings.Count( f => f.Severity == Severity.Medium );
-		var low = findings.Count( f => f.Severity == Severity.Low );
+		ScanReport report;
+		try
+		{
+			report = Task.Run(() => SecboxCoreClient.ScanFolder(folder)).GetAwaiter().GetResult();
+		}
+		catch (Exception ex)
+		{
+			DiagnosticsLog.Error("scan threw", ex);
+			return;
+		}
+
+		var critical = report.Findings.Count(f => f.Severity == Severity.Critical);
+		var high = report.Findings.Count(f => f.Severity == Severity.High);
+		var medium = report.Findings.Count(f => f.Severity == Severity.Medium);
+		var low = report.Findings.Count(f => f.Severity == Severity.Low);
 
 		global::Sandbox.Internal.GlobalGameNamespace.Log.Info(
-			$"[secbox] scan {ident}: Critical={critical} High={high} Medium={medium} Low={low}" );
+			$"[secbox] scan {ident}: Critical={critical} High={high} Medium={medium} Low={low} overall={report.Overall}");
 
-		var maxSeverity = findings.Count == 0
+		var maxSeverity = report.Findings.Count == 0
 			? Severity.Info
-			: findings.Max( f => f.Severity );
+			: report.Findings.Max(f => f.Severity);
 
-		if ( maxSeverity >= store.Policy.PromptThreshold )
+		if (maxSeverity >= store.Policy.PromptThreshold)
 		{
-			// Persist as Unreviewed first so a crash mid-dialog still leaves
-			// a trail in the trust store. The dialog flips to TrustAlways on
-			// the user's positive confirmation.
-			store.Upsert( new TrustEntry
+			store.Upsert(new TrustEntry
 			{
 				PackageIdent = ident,
 				Version = pkg.Revision?.VersionId.ToString(),
@@ -182,14 +210,14 @@ public static class InstallHook
 				MediumCount = medium,
 				LowCount = low,
 				Notes = $"Auto-recorded by install hook. First 5 findings:\n"
-					+ string.Join( "\n", findings.Take( 5 ).Select( f => "  " + f.ToString() ) ),
-			} );
+					+ string.Join("\n", report.Findings.Take(5).Select(f => "  " + f)),
+			});
 			store.Save();
 
 			global::Sandbox.Internal.GlobalGameNamespace.Log.Warning(
-				$"[secbox] {ident}: {critical} critical / {high} high findings — opening review dialog" );
+				$"[secbox] {ident}: {critical} critical / {high} high findings — opening review dialog");
 
-			Sandbox.SecBox.UI.ReviewDialog.Show( ident, hash, findings, store );
+			Sandbox.SecBox.UI.ReviewDialog.Show(ident, hash, report.Findings, store);
 		}
 	}
 }
