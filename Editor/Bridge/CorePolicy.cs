@@ -37,15 +37,16 @@ public static class CorePolicy
 	// Files the loader downloads in order. Hash pin for each.
 	public static readonly (string FileName, string Sha256)[] CoreFiles =
 	{
-		("Secbox.Core.dll",                        "4c27dfd3b9909c7812d340adb9cbe747ace94b7ab5db858b839510618c6e2c37"),
-		("Secbox.Contracts.dll",                   "fafba0a04514d3ea16deec0d22ce50a0e168296e932a001dec4600330bbceadc"),
-		("Secbox.Rules.dll",                       "ba27045ed8ec7a16c6d49164db46bea94570459924d6f62e7fd17e85a54ff9ae"),
-		("Secbox.Scanner.dll",                     "1931184d8085096449e3e486457c14d322f1c41324e90d3a6bfc9a369966ee2b"),
+		("Secbox.Core.dll",                        "3baa83e3ffbc31a9869ac3e84b88d39d003a4ad253ab4fd1ad3669f1411fc5e7"),
+		("Secbox.Contracts.dll",                   "ee304d0ebeb0c71b8f07184f7677521d41d8514b895081c54fb536e2baeae8c6"),
+		("Secbox.Rules.dll",                       "290c2d842a559e7d738253243102a7fec0c27af7ca6b1b2a7db4ed575eb133f6"),
+		("Secbox.Scanner.dll",                     "ecde82ab665859bb66bc2d53c17da1cb0449ac93732c3edc47a5d549bbeb6faf"),
 		("Mono.Cecil.dll",                         "831dca77470d85cb6ffbea3072daa7a3df5b7c9fcfd9c3f43674a9be99d4bfcf"),
 		// BridgeProtocol v2 additions — runtime monitoring stack.
-		("Secbox.Sentinel.Contracts.dll",          "da477dbda2ad607d0dea91278b1db7f216b73ebc526271d8489205c2d4b71ff8"),
-		("Secbox.Sentinel.Client.dll",             "eaf11482caf17dae0d100fa30089ee6c8bb634482f55d1bcae6b84cf0c8fadfc"),
+		("Secbox.Sentinel.Contracts.dll",          "e2256fa9638eb9900dad13489ccbb2b8a8182d500b854fff6b5c2d87236261e9"),
+		("Secbox.Sentinel.Client.dll",             "7495e40ad28e7c2e1a05c4bf3b1dfac4060af0c00b7fcb3aef1eeeeece71df77"),
 		("Microsoft.Diagnostics.NETCore.Client.dll", "863a7b01a6ea6db9bd8df140bf0bfeed91909a5d26140e5265a8ee2344847adb"),
+		("secbox-profiler-win-x64.dll",            "e6f61523d397170eb53c3cf7c76ef7e77b14a06da97b7753210aae7c5e8b9724"),
 	};
 
 	public static string LocalCachePath =>
