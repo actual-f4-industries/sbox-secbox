@@ -55,6 +55,20 @@ public sealed class SecboxConfig
 	public System.Collections.Generic.List<string> SentinelPathAllowlist { get; set; }
 		= new System.Collections.Generic.List<string>();
 
+	// Tier E enforcement — when a library-attributed Process.Start is
+	// detected, refuse to let it run. The Harmony prefix in ManagedCallSensor
+	// returns false; the original Process.Start never executes; library code
+	// sees a null result (and usually NREs at the next member access).
+	//
+	// Off by default — defensive monitoring is the safe baseline. Turn on
+	// when you trust the attribution model and want active prevention.
+	public bool BlockLibraryProcessStart { get; set; } = false;
+
+	// Pop a modal dialog whenever a Critical-severity finding arrives.
+	// On by default — the whole point of Critical is "user must see this".
+	// Disable for headless / batch use where attended UI isn't practical.
+	public bool ShowDetectionDialog { get; set; } = true;
+
 	public static string FilePath =>
 		Path.Combine(
 			Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),

@@ -37,19 +37,28 @@ public static class CorePolicy
 	// Files the loader downloads in order. Hash pin for each.
 	public static readonly (string FileName, string Sha256)[] CoreFiles =
 	{
-		("Secbox.Core.dll",                        "41294305819a86b309023715a30e1072fc1443e32752fb0a709616515486828d"),
-		("Secbox.Contracts.dll",                   "4af77101ba0322838df48d28dcff65e346a4eb796c836651441266564430ed6b"),
-		("Secbox.Rules.dll",                       "1392d416d447d012655133cf38d0e05211f0029d526c9b72f95d4ad0ce0cf96b"),
-		("Secbox.Scanner.dll",                     "3ef7a21e71bc16fa18eef4f7b6adf970f90e38ffa2889d9d702bc3925cedaac9"),
+		("Secbox.Core.dll",                        "7678f835cf2e4ce6f7b6085b8b86032ccf2fcf2009a027afb7bd3eaef4b7b48b"),
+		("Secbox.Contracts.dll",                   "cd112cc1675d506317dd09ddfee23be3b7db1ec38627943b0c5f9779b6026287"),
+		("Secbox.Rules.dll",                       "c321ffdfcabf8de0a4ece360b766c986810e971a92faf3ff15d68d9c67323c92"),
+		("Secbox.Scanner.dll",                     "7de5ef9a513d5446d848a240e60d13e2e6b362e11e30add350d9c02ed2ec31d7"),
 		("Mono.Cecil.dll",                         "831dca77470d85cb6ffbea3072daa7a3df5b7c9fcfd9c3f43674a9be99d4bfcf"),
 		// BridgeProtocol v2 additions — runtime monitoring stack.
-		("Secbox.Sentinel.Contracts.dll",          "c4ad737eaee1064227b4b1ab892afc2048c29864009270cf350077d69d53994e"),
-		("Secbox.Sentinel.Client.dll",             "46812403394f6af2b4089064c1cbff57cb26394803c27364a6e34bb7470d469a"),
+		("Secbox.Sentinel.Contracts.dll",          "440917e0359c409492b59a2fda6e925b88d229d5d17f60c95f6e6b409e5227d0"),
+		("Secbox.Sentinel.Client.dll",             "87f5f988482f095ce55d7a1d5963b011f6be26755b11f13f5b9f62865dc5656b"),
 		("Microsoft.Diagnostics.NETCore.Client.dll", "863a7b01a6ea6db9bd8df140bf0bfeed91909a5d26140e5265a8ee2344847adb"),
 		// Tier E (Harmony runtime patches) — ManagedCallSensor patches
 		// System.Diagnostics.Process.Start for library-attributed spawn tracking.
 		("0Harmony.dll",                           "817b0127f0f512122a0e0f8cab1d89c6431f6533898e473bbecdc61846cf945c"),
-		("secbox-profiler-win-x64.dll",            "a0eafac135c4d9c638352db8022cf8f130faecc4a8bbc31224cbb7543c8ca0d8"),
+		// WPF runtime-detection dialog. The editor adapter Process.Starts
+		// this exe directly when a Critical finding arrives and Sentinel
+		// service isn't running. Out-of-process by construction — survives
+		// any subsequent editor freeze. Framework-dependent (.NET 10
+		// Desktop Runtime required on the user's machine).
+		("SecboxAlertUI.exe",                      "209ca00918c76c4514102b696b23561796cb1cd7ba7bd4c3ec1b7510b02242f2"),
+		("SecboxAlertUI.dll",                      "92edb8f6c3cd9ca5a7dc6837d4a105d6c9bac933cc70c70690f9c888132144eb"),
+		("SecboxAlertUI.deps.json",                "027de1eceb8174e61c3de67af0ba5d6f34e936997c2ff55144f1b916bbcfe7c3"),
+		("SecboxAlertUI.runtimeconfig.json",       "96bc2946dff8790400d652ec7f8de7bb043e954980d59470c112788b68a1fbd3"),
+		("secbox-profiler-win-x64.dll",            "afc4f431b2f277b29d03a633eb4d74dce2fc53bfc342655beb97b9168d33d726"),
 	};
 
 	public static string LocalCachePath =>

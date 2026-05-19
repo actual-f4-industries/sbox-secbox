@@ -11,10 +11,18 @@ public sealed class RuntimeSensorOptions
 {
 	public bool EnableProfiler { get; set; } = true;
 	public bool EnableEtw { get; set; } = false;
+	public bool EnableManagedHook { get; set; } = true;
 	// Bitmask, mirrors Secbox.Core.RuntimeSensors.SensorCapabilities.
 	public int DesiredCapabilities { get; set; } = 0x7E; // managed+dyn+file+proc+net+nativeimg
 	public bool CaptureStack { get; set; } = false;
 	public List<string> PathAllowlist { get; set; }
+	public EnforcementPolicyDto Enforcement { get; set; }
+}
+
+// Mirror of Secbox.Core.RuntimeSensors.EnforcementPolicy.
+public sealed class EnforcementPolicyDto
+{
+	public bool BlockLibraryProcessStart { get; set; } = false;
 }
 
 public sealed class RuntimeSensorAttachResult

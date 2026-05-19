@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Sandbox.SecBox.Bridge;
@@ -83,9 +84,14 @@ public static class RuntimeMonitorCoordinator
 				{
 					EnableProfiler = true,
 					EnableEtw = cfg.SentinelEnabled,
+					EnableManagedHook = true,
 					CaptureStack = cfg.CaptureStackOnKernelEvents,
 					PathAllowlist = cfg.SentinelPathAllowlist?.Count > 0
 						? cfg.SentinelPathAllowlist : null,
+					Enforcement = new EnforcementPolicyDto
+					{
+						BlockLibraryProcessStart = cfg.BlockLibraryProcessStart,
+					},
 				};
 				var result = RuntimeMonitorBridge.Attach(opts, OnFindingJson);
 				_attached = result.Attached;
@@ -194,11 +200,112 @@ public static class RuntimeMonitorCoordinator
 		var line = $"[{f.Severity}] {f.Kind} @ {f.Target ?? "(no target)"} "
 			+ (string.IsNullOrEmpty(f.CallerAssembly) ? "" : $"by {f.CallerAssembly}::{f.CallerMethod} ")
 			+ $"[{string.Join(",", f.SensorIds ?? new List<string>())}]";
-		if (string.Equals(f.Severity, "Critical", StringComparison.OrdinalIgnoreCase))
+		var isCritical = string.Equals(f.Severity, "Critical", StringComparison.OrdinalIgnoreCase);
+		if (isCritical)
 			DiagnosticsLog.Error("runtime: " + line);
 		else if (string.Equals(f.Severity, "High", StringComparison.OrdinalIgnoreCase))
 			DiagnosticsLog.Warn("runtime: " + line);
 		else
 			DiagnosticsLog.Trace("runtime: " + line);
+
+		// Spawn the WPF SecboxAlertUI.exe out-of-process for every Critical
+		// finding, but ONLY when the Sentinel service isn't running — when
+		// it is, the service's AlertSpawner already saw the file drop and
+		// launched the same exe via CreateProcessAsUser in the user session.
+		// Doing both would double-pop the dialog.
+		//
+		// SecboxAlertUI.exe is downloaded into the Core cache folder (next
+		// to Secbox.Core.dll) by SecboxCoreLoader as part of the verified
+		// bundle. The launched process is independent of the editor — if
+		// library code freezes the editor microseconds after this spawn,
+		// the dialog still renders.
+		if (isCritical)
+		{
+			try
+			{
+				var conf = SecboxConfig.Load();
+				if (conf.ShowDetectionDialog && !conf.SentinelEnabled)
+					TrySpawnAlertUI(f);
+			}
+			catch (Exception ex)
+			{
+				DiagnosticsLog.Warn($"detection dialog dispatch failed: {ex.Message}");
+			}
+		}
+	}
+
+	// Out-of-process critical-detection dialog. Writes the finding to a
+	// temp JSON file, then Process.Starts SecboxAlertUI.exe with the file
+	// path as its single argument. Best-effort: any failure (exe missing,
+	// path unwritable, .NET Desktop Runtime not installed on the machine)
+	// is swallowed and logged — the audit log still has the finding.
+	static void TrySpawnAlertUI(RuntimeFinding f)
+	{
+		try
+		{
+			var exe = TryFindAlertUiExe();
+			if (string.IsNullOrEmpty(exe))
+			{
+				DiagnosticsLog.Trace("SecboxAlertUI.exe not found in core cache; alert dialog skipped");
+				return;
+			}
+
+			// Use the service's drop folder so the file ACL is consistent
+			// regardless of which path (service vs adapter) ends up
+			// launching the UI. AlertUI deletes the file after reading.
+			var dropDir = Path.Combine(
+				Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+				"secbox", "alerts");
+			Directory.CreateDirectory(dropDir);
+			var payloadPath = Path.Combine(dropDir,
+				$"editor-{DateTime.UtcNow:yyyyMMddTHHmmssfff}-{Guid.NewGuid():N}.json");
+
+			var payload = System.Text.Json.JsonSerializer.Serialize(new
+			{
+				severity = f.Severity,
+				kind = f.Kind,
+				target = f.Target,
+				callerAssembly = f.CallerAssembly,
+				callerMethod = f.CallerMethod,
+				timestamp = f.Timestamp,
+				pid = f.Pid,
+				action = string.Equals(f.Kind, "BlockedManagedProcessStart", StringComparison.Ordinal)
+					? "Blocked" : "Detected",
+				note = f.Note,
+			});
+			File.WriteAllText(payloadPath, payload);
+
+			var psi = new System.Diagnostics.ProcessStartInfo
+			{
+				FileName = exe,
+				UseShellExecute = false,
+				CreateNoWindow = false,
+				WorkingDirectory = Path.GetDirectoryName(exe),
+			};
+			psi.ArgumentList.Add(payloadPath);
+			System.Diagnostics.Process.Start(psi);
+		}
+		catch (Exception ex)
+		{
+			DiagnosticsLog.Warn($"SecboxAlertUI spawn failed: {ex.GetType().Name}: {ex.Message}");
+		}
+	}
+
+	static string TryFindAlertUiExe()
+	{
+		try
+		{
+			// AlertUI ships next to the other Core DLLs (downloaded and
+			// hash-verified by SecboxCoreLoader at startup). Resolve from
+			// the loaded Core.dll's directory so DevMode / production both
+			// work without separate path config.
+			var coreAsm = SecboxCoreLoader.CoreAssembly;
+			if (coreAsm == null) return null;
+			var dir = Path.GetDirectoryName(coreAsm.Location);
+			if (string.IsNullOrEmpty(dir)) return null;
+			var exe = Path.Combine(dir, "SecboxAlertUI.exe");
+			return File.Exists(exe) ? exe : null;
+		}
+		catch { return null; }
 	}
 }
