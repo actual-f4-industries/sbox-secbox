@@ -52,17 +52,12 @@ public static class DiagnosticsLog
 	{
 		var line = BuildLine(level, message, ex);
 
-		// Mirror to engine log when we can (live tail in editor).
-		try
-		{
-			if (level == "ERROR" || level == "FATAL")
-				global::Sandbox.Internal.GlobalGameNamespace.Log.Error(line);
-			else if (level == "WARN ")
-				global::Sandbox.Internal.GlobalGameNamespace.Log.Warning(line);
-			else
-				global::Sandbox.Internal.GlobalGameNamespace.Log.Info(line);
-		}
-		catch { /* logger must not throw */ }
+		// File-only by design — secbox / sentinel emit hundreds of TRACE+INFO
+		// lines per session (boot, ALC.Resolving, sentinel-log-route, runtime
+		// finding routing, etc.) and mirroring them to the engine log floods
+		// the editor console with content that's only useful when debugging
+		// secbox itself. The full log persists at FilePath; tail that file
+		// when you need live output.
 
 		lock (_lock)
 		{

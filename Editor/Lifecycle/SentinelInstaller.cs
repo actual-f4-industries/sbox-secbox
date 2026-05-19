@@ -35,7 +35,7 @@ public static class SentinelInstaller
 	// release as the bridge bundle, hash-verified before launch. Update
 	// this whenever CorePolicy.CoreVersion is bumped.
 	public const string ExpectedMsiSha256 =
-		"63f82ed6b0a264d484a65bde7f2b16c8d07783db2055e0785de3037726a5ae1b";
+		"6a8e33cf552996c64f56c257f1a72e74922a606114290fbd35e53015c774f390";
 
 	public static string MsiCachePath =>
 		Path.Combine(
@@ -153,10 +153,12 @@ public static class SentinelInstaller
 			var psi = new ProcessStartInfo
 			{
 				FileName = "msiexec.exe",
-				// /l*v writes a verbose log — essential for diagnosing 1603
-				// and other generic-failure exit codes. /qb+ keeps the UI
-				// minimal but shows a final modal.
-				Arguments = $"/i \"{msiPath}\" /qb+ /l*v \"{logPath}\"",
+				// Full UI mode — no /q flag — so the WixUI_Minimal dialog
+				// renders the branded banner and welcome bitmap. /l*v still
+				// writes the verbose log alongside the visible install
+				// dialogs (essential for diagnosing 1603 and other generic-
+				// failure exit codes).
+				Arguments = $"/i \"{msiPath}\" /l*v \"{logPath}\"",
 				UseShellExecute = true,
 				Verb = "runas", // UAC prompt
 			};
@@ -277,7 +279,8 @@ public static class SentinelInstaller
 			var psi = new ProcessStartInfo
 			{
 				FileName = "msiexec.exe",
-				Arguments = $"{arg} /qb+ /l*v \"{logPath}\"",
+				// Full UI to match the install flow's branded experience.
+				Arguments = $"{arg} /l*v \"{logPath}\"",
 				UseShellExecute = true,
 				Verb = "runas",
 			};
