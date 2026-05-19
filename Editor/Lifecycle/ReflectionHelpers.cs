@@ -86,4 +86,51 @@ internal static class ReflectionHelpers
 		}
 		catch { return null; }
 	}
+
+	// Resolve a type by full name when it's declared `internal` in another
+	// assembly. Editor.LibraryManager.LibraryList / LibraryDetail are the
+	// callers — we can't reference them at compile time, but their hosting
+	// assembly is loaded by the time editor code runs.
+	//
+	// Anchor type lets us short-circuit to the right assembly when known.
+	// Falls back to scanning every loaded assembly. Returns null if the type
+	// has been renamed or removed — caller must log and degrade gracefully.
+	public static Type ResolveEditorType( string fullName, Type anchor = null )
+	{
+		if ( string.IsNullOrEmpty( fullName ) ) return null;
+		try
+		{
+			if ( anchor != null )
+			{
+				var t = anchor.Assembly.GetType( fullName, throwOnError: false );
+				if ( t != null ) return t;
+			}
+			foreach ( var asm in AppDomain.CurrentDomain.GetAssemblies() )
+			{
+				try
+				{
+					var t = asm.GetType( fullName, throwOnError: false );
+					if ( t != null ) return t;
+				}
+				catch { /* dynamic / refl-only assemblies throw — skip */ }
+			}
+		}
+		catch { }
+		return null;
+	}
+
+	// Invoke a non-public instance method via reflection. Used to fall through
+	// to BaseItemWidget.PaintItem(VirtualWidget) from inside our ItemPaint
+	// wrapper so default row rendering still happens when we decorate.
+	public static object InvokeNonPublic( object instance, string methodName, params object[] args )
+	{
+		if ( instance == null ) return null;
+		try
+		{
+			var mi = instance.GetType().GetMethod( methodName,
+				BindingFlags.Instance | BindingFlags.NonPublic | BindingFlags.Public );
+			return mi?.Invoke( instance, args );
+		}
+		catch { return null; }
+	}
 }

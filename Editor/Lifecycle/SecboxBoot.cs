@@ -1,5 +1,6 @@
 using System.Runtime.CompilerServices;
 using Sandbox.SecBox.Bridge;
+using Sandbox.SecBox.UI;
 
 namespace Sandbox.SecBox.Lifecycle;
 
@@ -29,6 +30,7 @@ internal static class SecboxBoot
 
 		DiagnosticsLog.Wrap("InstallHook.Subscribe", InstallHook.Subscribe);
 		DiagnosticsLog.Wrap("RuntimeMonitor.Subscribe", RuntimeMonitor.Subscribe);
+		DiagnosticsLog.Wrap("LibraryManagerInjector.Arm", LibraryManagerInjector.Arm);
 
 		// Tier B (always) + optional Tier A (Sentinel). Both ride on the bridge
 		// to Secbox.Core — fire-and-forget so an ALC load failure here doesn't
