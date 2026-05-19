@@ -163,6 +163,27 @@ public sealed class SentinelSettingsDialog : BaseWindow
 	void BuildAdvancedSection()
 	{
 		var box = AddSectionBox("Advanced");
+
+		var cbBlock = new Checkbox("Block library Process.Start (Tier E enforcement)");
+		cbBlock.Value = _cfg.BlockLibraryProcessStart;
+		cbBlock.Bind("Value").From(() => _cfg.BlockLibraryProcessStart,
+			v => { _cfg.BlockLibraryProcessStart = v; });
+		box.Add(cbBlock);
+		var blockNote = new Label("When ON, the Harmony prefix in ManagedCallSensor refuses any "
+			+ "Process.Start call attributed to library code (assembly name starting with "
+			+ "'package.', or loaded from a Libraries/ or .bin/ path). The library sees a null "
+			+ "Process / false return and typically throws on the next member access. Critical "
+			+ "findings still fire the WPF alert dialog regardless of this toggle.");
+		blockNote.SetStyles(CssSubtle);
+		blockNote.WordWrap = true;
+		box.Add(blockNote);
+
+		var cbDialog = new Checkbox("Show WPF alert dialog on Critical findings");
+		cbDialog.Value = _cfg.ShowDetectionDialog;
+		cbDialog.Bind("Value").From(() => _cfg.ShowDetectionDialog,
+			v => { _cfg.ShowDetectionDialog = v; });
+		box.Add(cbDialog);
+
 		var cb = new Checkbox("Capture managed stack on kernel events (expensive)");
 		cb.Value = _cfg.CaptureStackOnKernelEvents;
 		cb.Bind("Value").From(() => _cfg.CaptureStackOnKernelEvents,

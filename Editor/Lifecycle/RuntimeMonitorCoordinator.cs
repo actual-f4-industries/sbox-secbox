@@ -208,24 +208,33 @@ public static class RuntimeMonitorCoordinator
 		else
 			DiagnosticsLog.Trace("runtime: " + line);
 
-		// Spawn the WPF SecboxAlertUI.exe out-of-process for every Critical
-		// finding, but ONLY when the Sentinel service isn't running — when
-		// it is, the service's AlertSpawner already saw the file drop and
-		// launched the same exe via CreateProcessAsUser in the user session.
-		// Doing both would double-pop the dialog.
+		// Every Critical finding pops the WPF alert dialog. Two paths
+		// converge on the same drop folder; whichever spawns first reads
+		// + deletes the JSON file, the other becomes a no-op.
 		//
-		// SecboxAlertUI.exe is downloaded into the Core cache folder (next
-		// to Secbox.Core.dll) by SecboxCoreLoader as part of the verified
-		// bundle. The launched process is independent of the editor — if
-		// library code freezes the editor microseconds after this spawn,
-		// the dialog still renders.
+		//   Path 1 (service):  drop file → AlertSpawner FileSystemWatcher →
+		//                       CreateProcessAsUser → SecboxAlertUI.exe in
+		//                       the user's session. Bulletproof against
+		//                       editor freezes.
+		//   Path 2 (no svc):   drop file → adapter Process.Starts
+		//                       SecboxAlertUI.exe directly. Fallback when
+		//                       service isn't installed.
+		//
+		// Prior gating was wrong: it only fired when Tier E had blocked,
+		// so kernel-only Critical findings (ETW ProcessStart of an editor
+		// descendant, with Tier E's CallAttributionRing entry missed
+		// because ETW reported tid=-1) never produced a dialog. Now we
+		// always drop on Critical; service or adapter spawns.
 		if (isCritical)
 		{
 			try
 			{
 				var conf = SecboxConfig.Load();
-				if (conf.ShowDetectionDialog && !conf.SentinelEnabled)
-					TrySpawnAlertUI(f);
+				if (conf.ShowDetectionDialog)
+				{
+					TryDropAlertPayload(f);
+					if (!conf.SentinelEnabled) TrySpawnAlertUI(f);
+				}
 			}
 			catch (Exception ex)
 			{
@@ -234,31 +243,23 @@ public static class RuntimeMonitorCoordinator
 		}
 	}
 
-	// Out-of-process critical-detection dialog. Writes the finding to a
-	// temp JSON file, then Process.Starts SecboxAlertUI.exe with the file
-	// path as its single argument. Best-effort: any failure (exe missing,
-	// path unwritable, .NET Desktop Runtime not installed on the machine)
-	// is swallowed and logged — the audit log still has the finding.
-	static void TrySpawnAlertUI(RuntimeFinding f)
+	// Drop folder shared by service AlertSpawner + adapter direct-spawn.
+	static string AlertDropDir => Path.Combine(
+		Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
+		"secbox", "alerts");
+
+	// Write the alert JSON into the watched drop folder. Atomic rename
+	// (.tmp → .json) so the service's FileSystemWatcher never sees a
+	// partially-written file. Returns the final path on success, null
+	// on any failure (swallowed — audit log already has the finding).
+	static string TryDropAlertPayload(RuntimeFinding f)
 	{
 		try
 		{
-			var exe = TryFindAlertUiExe();
-			if (string.IsNullOrEmpty(exe))
-			{
-				DiagnosticsLog.Trace("SecboxAlertUI.exe not found in core cache; alert dialog skipped");
-				return;
-			}
-
-			// Use the service's drop folder so the file ACL is consistent
-			// regardless of which path (service vs adapter) ends up
-			// launching the UI. AlertUI deletes the file after reading.
-			var dropDir = Path.Combine(
-				Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-				"secbox", "alerts");
-			Directory.CreateDirectory(dropDir);
-			var payloadPath = Path.Combine(dropDir,
-				$"editor-{DateTime.UtcNow:yyyyMMddTHHmmssfff}-{Guid.NewGuid():N}.json");
+			Directory.CreateDirectory(AlertDropDir);
+			var name = $"editor-{DateTime.UtcNow:yyyyMMddTHHmmssfff}-{Guid.NewGuid():N}.json";
+			var tmp = Path.Combine(AlertDropDir, name + ".tmp");
+			var final = Path.Combine(AlertDropDir, name);
 
 			var payload = System.Text.Json.JsonSerializer.Serialize(new
 			{
@@ -273,7 +274,34 @@ public static class RuntimeMonitorCoordinator
 					? "Blocked" : "Detected",
 				note = f.Note,
 			});
-			File.WriteAllText(payloadPath, payload);
+			File.WriteAllText(tmp, payload);
+			File.Move(tmp, final);
+			return final;
+		}
+		catch (Exception ex)
+		{
+			DiagnosticsLog.Warn($"alert payload drop failed: {ex.GetType().Name}: {ex.Message}");
+			return null;
+		}
+	}
+
+	// Adapter-direct spawn path — used when Sentinel service isn't enabled
+	// (no AlertSpawner watching). Drops the JSON via TryDropAlertPayload,
+	// then Process.Starts SecboxAlertUI.exe directly. Best-effort: any
+	// failure (exe missing, .NET Desktop Runtime missing) is swallowed.
+	static void TrySpawnAlertUI(RuntimeFinding f)
+	{
+		try
+		{
+			var exe = TryFindAlertUiExe();
+			if (string.IsNullOrEmpty(exe))
+			{
+				DiagnosticsLog.Trace("SecboxAlertUI.exe not found in core cache; alert dialog skipped");
+				return;
+			}
+
+			var payloadPath = TryDropAlertPayload(f);
+			if (string.IsNullOrEmpty(payloadPath)) return;
 
 			var psi = new System.Diagnostics.ProcessStartInfo
 			{
