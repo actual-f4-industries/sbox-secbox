@@ -20,19 +20,33 @@ namespace Sandbox.SecBox.Lifecycle;
 //   * DetachAsync — call on shutdown / dev-mode reload.
 public static class RuntimeMonitorCoordinator
 {
-	static readonly object _lock = new();
+	// Locks are split so the event hot path doesn't share a lock with the
+	// attach lifecycle or with reader queries — Sentinel can push hundreds
+	// of events per second and the UI thread must never block on that.
+	//
+	//  _attachLock — serialises Attach/Detach/Reapply. Cold path.
+	//  _writeLock  — protects the _recent queue. Held briefly during enqueue
+	//                + snapshot publish. Held ONLY by event-receiver threads.
+	//  _snapshot   — volatile reference, atomic publish on each event.
+	//                Readers never take any lock; just read the field.
+	//                Eliminates the deadlock that hits when the UI thread
+	//                tries to acquire a contended lock and sbox's
+	//                ExpirableSynchronizationContext pumps re-entrant calls.
+	static readonly object _attachLock = new();
+	static readonly object _writeLock = new();
 	static bool _attached;
 	static readonly Queue<RuntimeFinding> _recent = new();
+	static volatile RuntimeFinding[] _snapshot = System.Array.Empty<RuntimeFinding>();
 	const int RecentMax = 256;
 
-	public static bool IsAttached { get { lock (_lock) return _attached; } }
+	public static bool IsAttached => System.Threading.Volatile.Read(ref _attached);
 
-	public static IReadOnlyList<RuntimeFinding> RecentFindings
-	{
-		get { lock (_lock) return _recent.ToArray(); }
-	}
+	// Lock-free read: just returns the latest snapshot. Updaters publish a
+	// new array atomically. Safe against any number of concurrent readers
+	// and writers without taking a lock on the read path.
+	public static IReadOnlyList<RuntimeFinding> RecentFindings => _snapshot;
 
-	public static int RecentCount { get { lock (_lock) return _recent.Count; } }
+	public static int RecentCount => _snapshot.Length;
 
 	public static event Action<RuntimeFinding> FindingReceived;
 
@@ -60,7 +74,7 @@ public static class RuntimeMonitorCoordinator
 
 	static void AttachOnce(SecboxConfig cfg)
 	{
-		lock (_lock)
+		lock (_attachLock)
 		{
 			if (_attached) return;
 			try
@@ -79,11 +93,22 @@ public static class RuntimeMonitorCoordinator
 				if (result.Attached)
 				{
 					DiagnosticsLog.Info($"runtime sensors attached: "
-						+ string.Join(", ", result.Sensors.Select(s => $"{s.Id}={s.Status}")));
+						+ string.Join(", ", result.Sensors.Select(s => $"{s.Id}={s.Status}"
+							+ (string.IsNullOrEmpty(s.LastError) ? "" : " — " + s.LastError))));
 				}
 				else
 				{
-					DiagnosticsLog.Warn($"runtime sensor attach reported failure: {result.Message}");
+					// Surface BOTH the message and every sensor's status so
+					// state-mismatch bugs (adapter says detached / Core says
+					// already attached, etc.) are visible without having to
+					// add ad-hoc traces. Sensors list is non-empty whenever
+					// Core has a leftover registry from a partial attach.
+					var sensorDump = result.Sensors == null || result.Sensors.Count == 0
+						? "(none)"
+						: string.Join(", ", result.Sensors.Select(s =>
+							$"{s.Id}={s.Status}"
+							+ (string.IsNullOrEmpty(s.LastError) ? "" : " — " + s.LastError)));
+					DiagnosticsLog.Warn($"runtime sensor attach reported failure: {result.Message ?? "(no message)"} | sensors=[{sensorDump}]");
 				}
 			}
 			catch (Exception ex)
@@ -95,13 +120,18 @@ public static class RuntimeMonitorCoordinator
 
 	public static void Detach()
 	{
-		lock (_lock)
+		lock (_attachLock)
 		{
 			if (!_attached) return;
 			try { RuntimeMonitorBridge.Detach(); }
 			catch (Exception ex) { DiagnosticsLog.Warn($"detach threw: {ex.Message}"); }
 			_attached = false;
+		}
+		// Clear the recent ring outside the attach lock to keep that lock cold.
+		lock (_writeLock)
+		{
 			_recent.Clear();
+			_snapshot = System.Array.Empty<RuntimeFinding>();
 		}
 	}
 
@@ -125,13 +155,40 @@ public static class RuntimeMonitorCoordinator
 		}
 		if (f == null) return;
 
-		lock (_lock)
+		// Hot path. _writeLock is the SHORT critical section — never held
+		// for any other purpose, so the UI thread cannot block on it via
+		// any reader (RecentFindings reads the volatile snapshot lock-free).
+		// Snapshot is republished on every enqueue; readers always see a
+		// consistent array, no half-updated queue.
+		lock (_writeLock)
 		{
 			_recent.Enqueue(f);
 			while (_recent.Count > RecentMax) _recent.Dequeue();
+			_snapshot = _recent.ToArray();
 		}
 
 		try { FindingReceived?.Invoke(f); } catch { }
+
+		// Dedicated audit log for Sentinel kernel events — one line per event,
+		// separate from the general secbox.log so the kernel audit trail is
+		// trivial to grep / tail / ship to a SIEM. Profiler-only events stay
+		// in secbox.log to avoid bloating the audit file with managed noise.
+		var sensorIds = f.SensorIds == null ? "(null)" :
+			f.SensorIds.Count == 0 ? "(empty)" : string.Join(",", f.SensorIds);
+		var hasEtw = f.SensorIds != null && f.SensorIds.Contains("etw");
+		DiagnosticsLog.Trace($"sentinel-log-route: sensorIds=[{sensorIds}] hasEtw={hasEtw} kind={f.Kind}");
+		if (hasEtw)
+		{
+			try
+			{
+				SentinelEventLog.Write(f);
+				DiagnosticsLog.Trace($"sentinel-log-route: wrote to {SentinelEventLog.FilePath}");
+			}
+			catch (Exception ex)
+			{
+				DiagnosticsLog.Warn($"sentinel-log-route: write failed: {ex.GetType().Name}: {ex.Message}");
+			}
+		}
 
 		// Severity-based logging — Critical → Error log, others → Info.
 		var line = $"[{f.Severity}] {f.Kind} @ {f.Target ?? "(no target)"} "

@@ -279,6 +279,31 @@ public static class MenuItems
 		EditorUtility.DisplayDialog( "secbox", "Runtime sensors detached." );
 	}
 
+	[Menu( "Editor", "secbox/Runtime Monitoring/Open Sentinel Event Log" )]
+	public static void OpenSentinelEventLog()
+	{
+		var path = Bridge.SentinelEventLog.FilePath;
+		if ( !System.IO.File.Exists( path ) )
+		{
+			EditorUtility.DisplayDialog( "secbox",
+				$"Sentinel event log does not exist yet:\n{path}\n\n"
+				+ "Enable Sentinel via Runtime Monitoring > Settings… and let it capture some events first." );
+			return;
+		}
+		try
+		{
+			System.Diagnostics.Process.Start( new System.Diagnostics.ProcessStartInfo
+			{
+				FileName = path,
+				UseShellExecute = true,
+			} );
+		}
+		catch ( System.Exception ex )
+		{
+			EditorUtility.DisplayDialog( "secbox", $"Could not open: {ex.Message}\n\nPath: {path}" );
+		}
+	}
+
 	[Menu( "Editor", "secbox/Open Trust Store File" )]
 	public static void OpenTrustStore()
 	{
