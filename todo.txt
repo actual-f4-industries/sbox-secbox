@@ -1,0 +1,11 @@
+Quality of Life:
+ - Add Linux Notice Support for Sentinel.
+ - Review Page.
+ - Link to Source Code in dropdown.
+ - Have SBOX-SECBOX README reference the repo binary at the top of the readme.
+
+Bug Reports:
+ - No Sentinal-For-Linux
+ - Sentinel installer still has Ipsem Lorem
+ - The badges don't render.
+ - The detail pane renders while looking at "Browse" AND "Installed" and should only render when looking at the "Installed"
