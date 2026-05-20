@@ -37,14 +37,14 @@ public static class CorePolicy
 	// Files the loader downloads in order. Hash pin for each.
 	public static readonly (string FileName, string Sha256)[] CoreFiles =
 	{
-		("Secbox.Core.dll",                        "5265cd1fbd3d154ab343fb7bd2d05391682070ee84b5f11926c38243463a5d0b"),
-		("Secbox.Contracts.dll",                   "95d36b0f6695b088518fa1eedf21952b6bce8bd039a505ebdeb143d2edd25727"),
-		("Secbox.Rules.dll",                       "21e3066a6f97985943a92d7c052319cfe17ef19e425f2f47c583f6cd3a7f0dd8"),
-		("Secbox.Scanner.dll",                     "7e0486fee9ec5cb05b42d0e756ae72ebd5580a13db3a061a7754ba2dc5a838db"),
+		("Secbox.Core.dll",                        "c19d4725b47159a889e0580ab5e288229682b2236fe51a86c23e19b64dd6cdd3"),
+		("Secbox.Contracts.dll",                   "8b72c07c45ccddeae8076757b5d003186dbe567584ded20cd30c8baeb930095b"),
+		("Secbox.Rules.dll",                       "a29c915562f4cf120e387c3ce2cabd5ac91ba4956b1b56b57f10e064e9ef821a"),
+		("Secbox.Scanner.dll",                     "4b2861fb5c481948d794ee0b96327ea5a661935f520273772de67f076fc8f400"),
 		("Mono.Cecil.dll",                         "831dca77470d85cb6ffbea3072daa7a3df5b7c9fcfd9c3f43674a9be99d4bfcf"),
 		// BridgeProtocol v2 additions — runtime monitoring stack.
-		("Secbox.Sentinel.Contracts.dll",          "08bffafe11b92730eb5ffe1159a8c2d263aadd4ba95e06f6ae43805fb078fcad"),
-		("Secbox.Sentinel.Client.dll",             "71e9175c218d8bafc6001e87054e2bb06a1cd5af8337e3c21d47bbc915746bc7"),
+		("Secbox.Sentinel.Contracts.dll",          "1b7e9f84bacfb34c697f98ef5b990316fa6f8a5a4885f4ab665237b5c29ebfe1"),
+		("Secbox.Sentinel.Client.dll",             "a965967505d0e858932b1d9d8ff3fa22107381aa17b89dc43e5c9275be518fa4"),
 		("Microsoft.Diagnostics.NETCore.Client.dll", "863a7b01a6ea6db9bd8df140bf0bfeed91909a5d26140e5265a8ee2344847adb"),
 		// Tier E (Harmony runtime patches) — ManagedCallSensor patches
 		// System.Diagnostics.Process.Start for library-attributed spawn tracking.
@@ -58,8 +58,8 @@ public static class CorePolicy
 		// exe (~62MB compressed). Works on machines without .NET Desktop
 		// Runtime installed. Hash will change every release because R2R /
 		// runtime DLL contents inside the bundle are version-stamped.
-		("SecboxAlertUI.exe",                      "863fde2befd9be43c3a9c00f8bdcf42f0149cc98822d4f0c3dc4e5277876f22f"),
-		("secbox-profiler-win-x64.dll",            "b9f055c9053df5bd3e5d0ec559cab83117eb5422e1523a3b2b67a377d91c8d2f"),
+		("SecboxAlertUI.exe",                      "6cb6b5f3fe1f8b3bb719bfb5ece3715120fd1eb84186555b368d856cff3860af"),
+		("secbox-profiler-win-x64.dll",            "6f4a3fdde5f6d6a39db03eab323423f594be7d87ff55a3978a6d89644a3357b4"),
 	};
 
 	public static string LocalCachePath =>

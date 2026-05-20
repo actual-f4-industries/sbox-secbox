@@ -35,7 +35,7 @@ public static class SentinelInstaller
 	// release as the bridge bundle, hash-verified before launch. Update
 	// this whenever CorePolicy.CoreVersion is bumped.
 	public const string ExpectedMsiSha256 =
-		"9947b9bee35d5a5705712c64a2c3f5695d24a01e3cb572514cab69fb094f3e4b";
+		"f336574723cddfc1065d5ab2717128f58a50a586e5cdece93a8d91707e7a23cc";
 
 	public static string MsiCachePath =>
 		Path.Combine(
