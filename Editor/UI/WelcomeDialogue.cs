@@ -1,4 +1,5 @@
 using System;
+using System.IO;
 using System.Threading.Tasks;
 using Editor;
 using Sandbox.SecBox.Bridge;
@@ -28,19 +29,22 @@ public sealed class WelcomeDialogue : BaseWindow
 	Checkbox _cbDontShow;
 	bool _scanRunning;
 	bool _scanWasTriggered;
+	Pixmap _logo;
 
 	public Action<WelcomeDialogueResult> Closed;
 
 	public WelcomeDialogue() : base()
 	{
 		DeleteOnClose = true;
-		Size = new Vector2(620, 540);
+		Size = new Vector2(620, 620);
 		WindowTitle = "secbox — welcome";
 		SetWindowIcon("shield_lock");
 
 		Layout = Layout.Column();
 		Layout.Margin = 18;
 		Layout.Spacing = 10;
+
+		_logo = TryLoadLogo();
 
 		BuildHeader();
 		BuildWhatItDoes();
@@ -52,6 +56,13 @@ public sealed class WelcomeDialogue : BaseWindow
 
 	void BuildHeader()
 	{
+		if (_logo != null)
+		{
+			var banner = new LogoBannerWidget(_logo, this);
+			banner.FixedHeight = 96;
+			Layout.Add(banner);
+		}
+
 		var col = Layout.AddColumn();
 		col.Spacing = 4;
 		var title = new Label("Welcome to SecBox");
@@ -237,6 +248,129 @@ public sealed class WelcomeDialogue : BaseWindow
 			p.SetStyles(CssBody);
 			p.WordWrap = true;
 			Layout.Add(p);
+		}
+	}
+
+	static Pixmap TryLoadLogo()
+	{
+		var root = ResolveSecboxLibraryRoot();
+		if (string.IsNullOrEmpty(root))
+		{
+			DiagnosticsLog.Warn("[secbox] welcome: could not resolve secbox library root — banner skipped");
+			return null;
+		}
+
+		var path = Path.Combine(root, "Assets", "Materials", "secbox-logo-transparent.png");
+		DiagnosticsLog.Info($"[secbox] welcome: loading logo from '{path}'");
+
+		if (!File.Exists(path))
+		{
+			DiagnosticsLog.Warn($"[secbox] welcome: logo file not found at '{path}'");
+			return null;
+		}
+
+		try
+		{
+			var pixmap = Pixmap.FromFile(path);
+			if (pixmap == null)
+			{
+				DiagnosticsLog.Warn($"[secbox] welcome: Pixmap.FromFile returned null for '{path}' (path scheme issue?)");
+				return null;
+			}
+			DiagnosticsLog.Info($"[secbox] welcome: logo loaded ({pixmap.Width}x{pixmap.Height})");
+			return pixmap;
+		}
+		catch (Exception ex)
+		{
+			DiagnosticsLog.Warn($"[secbox] welcome: Pixmap.FromFile threw: {ex.Message}");
+			return null;
+		}
+	}
+
+	// Locate this library's root via two strategies in order of reliability:
+	//   1. Walk up from typeof(WelcomeDialogue).Assembly.Location until we find
+	//      a secbox.sbproj. Works regardless of how the engine ident-formats
+	//      the local package (FullIdent is "{org}.{ident}#local" — see engine
+	//      Package.Static.cs:FormatIdent — so ident-based filtering is fragile).
+	//   2. Enumerate LibrarySystem.All and pick the one whose RootDirectory
+	//      contains secbox.sbproj. Content-based; survives ident changes.
+	static string ResolveSecboxLibraryRoot()
+	{
+		try
+		{
+			var asmLoc = typeof(WelcomeDialogue).Assembly.Location;
+			DiagnosticsLog.Trace($"[secbox] welcome: Assembly.Location = '{asmLoc}'");
+			if (!string.IsNullOrEmpty(asmLoc))
+			{
+				var dir = new DirectoryInfo(Path.GetDirectoryName(asmLoc) ?? "");
+				for (int i = 0; i < 12 && dir != null; i++)
+				{
+					if (File.Exists(Path.Combine(dir.FullName, "secbox.sbproj")))
+					{
+						DiagnosticsLog.Info($"[secbox] welcome: library root via Assembly.Location: {dir.FullName}");
+						return dir.FullName;
+					}
+					dir = dir.Parent;
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			DiagnosticsLog.Warn($"[secbox] welcome: Assembly.Location lookup threw: {ex.Message}");
+		}
+
+		try
+		{
+			var libs = LibrarySystem.All;
+			if (libs != null)
+			{
+				foreach (var lib in libs)
+				{
+					string ident = null, root = null;
+					try
+					{
+						var proj = lib?.Project;
+						ident = proj?.Package?.FullIdent ?? proj?.Package?.Ident;
+						root = proj?.RootDirectory?.FullName;
+					}
+					catch { }
+					DiagnosticsLog.Trace($"[secbox] welcome: library scan ident='{ident}' root='{root}'");
+
+					if (!string.IsNullOrEmpty(root) && File.Exists(Path.Combine(root, "secbox.sbproj")))
+					{
+						DiagnosticsLog.Info($"[secbox] welcome: library root via LibrarySystem (ident='{ident}'): {root}");
+						return root;
+					}
+				}
+			}
+		}
+		catch (Exception ex)
+		{
+			DiagnosticsLog.Warn($"[secbox] welcome: LibrarySystem enumeration threw: {ex.Message}");
+		}
+
+		return null;
+	}
+
+	// Letterboxes a square logo into whatever rect the layout assigns. The
+	// pixmap is owned by the parent dialog; this widget only paints it.
+	sealed class LogoBannerWidget : Widget
+	{
+		readonly Pixmap _pixmap;
+
+		public LogoBannerWidget(Pixmap pixmap, Widget parent) : base(parent)
+		{
+			_pixmap = pixmap;
+		}
+
+		protected override void OnPaint()
+		{
+			if (_pixmap == null) return;
+
+			var size = MathF.Min(LocalRect.Width, LocalRect.Height);
+			var x = LocalRect.Left + (LocalRect.Width - size) / 2f;
+			var y = LocalRect.Top + (LocalRect.Height - size) / 2f;
+			Paint.Draw(new Rect(x, y, size, size), _pixmap);
 		}
 	}
 }
