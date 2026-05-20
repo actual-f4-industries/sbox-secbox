@@ -2,6 +2,11 @@
 
 Anti-malware / sandbox-review library for the s&box editor.
 
+#### (This is the Frontend. Backend Found <ins>[Here</ins>.](https://github.com/actual-f4-industries/secbox))
+This repository hosts the frontend, downloaded via Editor's Library Manager.  
+[Click here](https://github.com/actual-f4-industries/secbox) to open the SecBox backend repository. 
+
+
 ## Why
 
 > "Editor projects are not sandboxed. They are not limited by any whitelists
