@@ -3,9 +3,17 @@ Quality of Life:
  - Review Page.
  - Link to Source Code in dropdown.
  - Have SBOX-SECBOX README reference the repo binary at the top of the readme.
+ - Tell user to restart editor after enabling Sentinel.
+ - Enable sentinal in 1 click after install.
+ - Shows Detach and Attach regardless of Attach State.,
+ - Change "Unreviewed" to "Review Incomplete"
+ - Nothing is available until user restarts. And the header dropdown ui note this. "Please restart to enable features.
 
 Bug Reports:
+ - Runtime Monitoring buttons available before SEntinel is installed. Sentinal?
  - No Sentinal-For-Linux
  - Sentinel installer still has Ipsem Lorem
  - The badges don't render.
  - The detail pane renders while looking at "Browse" AND "Installed" and should only render when looking at the "Installed"
+ - Installer shows "running: True" needs clarification.
+ - "Block" does nothing.
