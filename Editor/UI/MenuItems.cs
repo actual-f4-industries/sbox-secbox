@@ -1,3 +1,4 @@
+using System;
 using System.Linq;
 using Editor;
 using Sandbox.SecBox.Bridge;
@@ -334,4 +335,24 @@ public static class MenuItems
 			EditorUtility.DisplayDialog( "secbox", $"Could not open: {ex.Message}\n\nPath: {path}" );
 		}
 	}
+	
+	[Menu( "Editor", "secbox/Open Source Code" )]
+	public static void OpenSourceCode()
+	{
+		const string url = "https://github.com/actual-f4-industries/sbox-secbox";
+		try
+		{
+			System.Diagnostics.Process.Start( new System.Diagnostics.ProcessStartInfo
+			{
+				FileName = url,
+				UseShellExecute = true,
+			} );
+			EditorUtility.DisplayDialog( "secbox", $"Opened! Please find https://github.com/actual-f4-industries/sbox-secbox in your default browser." );
+		}
+		catch ( System.Exception ex )
+		{
+			EditorUtility.DisplayDialog( "secbox", $"Could not open source code:\n{ex.Message}\n\nURL: {url}" );
+		}
+	}
+
 }
