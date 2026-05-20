@@ -4,9 +4,8 @@ todo:
 
 Quality of Life:
  - Add Linux Notice Support for Sentinel.
- - Review Page.
+ - Review Page User Mode.
  - Link to Source Code in dropdown.
- - Have SBOX-SECBOX README reference the repo binary at the top of the readme.
  - Tell user to restart editor after enabling Sentinel.
  - Enable sentinal in 1 click after install.
  - Shows Detach and Attach regardless of Attach State.,

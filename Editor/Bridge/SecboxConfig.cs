@@ -57,6 +57,12 @@ public sealed class SecboxConfig
 	// Disable for headless / batch use where attended UI isn't practical.
 	public bool ShowDetectionDialog { get; set; } = true;
 
+	// Welcome dialogue — when true, suppress the first-install welcome
+	// across every project this user opens. Set by the "don't show again"
+	// checkbox in the welcome dialogue. Per-project suppression is handled
+	// separately by a marker file at <projectRoot>/.secbox/welcome-shown.
+	public bool WelcomeDialogueDismissedGlobally { get; set; } = false;
+
 	public static string FilePath =>
 		Path.Combine(
 			Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData),
