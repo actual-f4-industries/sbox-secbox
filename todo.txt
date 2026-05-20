@@ -13,6 +13,5 @@ Bug Reports:
  - No Sentinal-For-Linux
  - Sentinel installer still has Ipsem Lorem
  - The badges don't render.
- - The detail pane renders while looking at "Browse" AND "Installed" and should only render when looking at the "Installed"
  - Sentinel Installer shows "running: True" needs clarification.
  - "Block" does nothing.

@@ -43,6 +43,11 @@ public sealed class SecboxStatusPanel : Widget
 		Layout.Spacing = 4;
 		SetStyles( CssCard );
 
+		// Start hidden — RefreshImpl flips us visible once it confirms the
+		// detail pane is showing an installed LibraryProject. Avoids a 1-2
+		// frame flash when the user opens the Browse tab.
+		Visible = false;
+
 		var header = new Label( "SECBOX" );
 		header.SetStyles( CssHeader );
 		Layout.Add( header );
@@ -87,6 +92,14 @@ public sealed class SecboxStatusPanel : Widget
 	void RefreshImpl()
 	{
 		var lib = _currentLibraryResolver();
+
+		// Browse view exposes a Package (not yet installed locally); the SecBox
+		// panel is meaningless there — no folder to hash, no trust entry to show.
+		// Only the Installed view yields a LibraryProject. Hide otherwise.
+		var showPanel = lib is LibraryProject;
+		if ( Visible != showPanel ) Visible = showPanel;
+		if ( !showPanel ) { _lastIdentShown = null; return; }
+
 		var (ident, folder) = ResolveIdentAndFolder( lib );
 
 		// Early-out: same library AND trust store unchanged. We still recompute
