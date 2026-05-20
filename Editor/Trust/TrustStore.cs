@@ -26,6 +26,11 @@ public sealed class TrustStore
 	public Policy Policy { get; set; } = new();
 	public List<TrustEntry> Entries { get; set; } = new();
 
+	// Bumped on every Save() so listeners (status panel) can detect changes
+	// without rereading the file or comparing entry contents.
+	static int _version;
+	public static int Version => System.Threading.Volatile.Read( ref _version );
+
 	[JsonIgnore]
 	public string FilePath { get; private set; }
 
@@ -66,6 +71,7 @@ public sealed class TrustStore
 
 		var json = JsonSerializer.Serialize( this, JsonOpts );
 		File.WriteAllText( FilePath, json );
+		System.Threading.Interlocked.Increment( ref _version );
 	}
 
 	// Look up by hash. The hash is the authoritative key.

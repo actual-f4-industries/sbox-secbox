@@ -26,6 +26,7 @@ public sealed class SecboxStatusPanel : Widget
 	Button _reviewButton;
 
 	string _lastIdentShown;
+	int _lastStoreVersion = -1;
 
 	const string CssCard    = "background-color: #1f2024; border-radius: 6px; padding: 8px 10px;";
 	const string CssHeader  = "color: #c5cad1; font-size: 11px; font-weight: 700; letter-spacing: 0.5px;";
@@ -88,10 +89,13 @@ public sealed class SecboxStatusPanel : Widget
 		var lib = _currentLibraryResolver();
 		var (ident, folder) = ResolveIdentAndFolder( lib );
 
-		// Early-out: same library, no recompute needed. The trust store is
-		// cheap to read but we still avoid the hit on every frame.
-		if ( ident == _lastIdentShown ) return;
+		// Early-out: same library AND trust store unchanged. We still recompute
+		// when TrustStore.Save() bumps its version (e.g. user clicked Block in
+		// the review dialog) so the status text updates without a click-away.
+		var storeVersion = TrustStore.Version;
+		if ( ident == _lastIdentShown && storeVersion == _lastStoreVersion ) return;
 		_lastIdentShown = ident;
+		_lastStoreVersion = storeVersion;
 
 		if ( string.IsNullOrEmpty( ident ) )
 		{
@@ -105,7 +109,7 @@ public sealed class SecboxStatusPanel : Widget
 
 		_identLabel.Text = ident;
 		_rescanButton.Enabled = !string.IsNullOrEmpty( folder );
-		_reviewButton.Enabled = false;
+		_reviewButton.Enabled = !string.IsNullOrEmpty( folder );
 
 		var projectRoot = PackageLocator.CurrentProjectRoot();
 		if ( string.IsNullOrEmpty( projectRoot ) )
@@ -142,8 +146,6 @@ public sealed class SecboxStatusPanel : Widget
 
 		_statusLabel.Text = $"{entry.Decision} · reviewed {entry.ReviewedAt:yyyy-MM-dd HH:mm}";
 		_countsLabel.Text = $"Crit={entry.CriticalCount}  High={entry.HighCount}  Med={entry.MediumCount}  Low={entry.LowCount}";
-		_reviewButton.Enabled = entry.Decision == Decision.Unreviewed
-			|| entry.CriticalCount + entry.HighCount > 0;
 	}
 
 	void OnRescan()
