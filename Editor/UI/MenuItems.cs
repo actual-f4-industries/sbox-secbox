@@ -285,6 +285,7 @@ public static class MenuItems
 	[Menu( "Editor", "secbox/Open Source Code" )]
 	public static void OpenSourceCode()
 	{
+		// keep in sync with WelcomeDialogue.GitHubUrl
 		const string url = "https://github.com/actual-f4-industries/sbox-secbox";
 		try
 		{
@@ -298,6 +299,19 @@ public static class MenuItems
 		catch ( System.Exception ex )
 		{
 			EditorUtility.DisplayDialog( "secbox", $"Could not open source code:\n{ex.Message}\n\nURL: {url}" );
+		}
+	}
+
+	[Menu( "Editor", "secbox/Show Welcome..." )]
+	public static void ShowWelcome()
+	{
+		try
+		{
+			WelcomeDialogueTrigger.ShowNow( isManualInvocation: true );
+		}
+		catch ( System.Exception ex )
+		{
+			EditorUtility.DisplayDialog( "secbox", $"Could not open welcome: {ex.Message}" );
 		}
 	}
 
