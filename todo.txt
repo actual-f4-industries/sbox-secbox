@@ -12,6 +12,8 @@ Bug Reports:
  - Runtime Monitoring buttons available before SEntinel is installed. Sentinal?
  - No Sentinal-For-Linux
  - Sentinel installer still has Ipsem Lorem
- - The badges don't render.
  - Sentinel Installer shows "running: True" needs clarification.
  - "Block" does nothing.
+
+Maybe Never Address:
+ - The badges don't render.
