@@ -12,5 +12,5 @@ public sealed class ScanReport
 	public List<RulePackInfo> RulePacksUsed { get; set; } = new();
 	public string ScannerVersion { get; set; }
 	public int ProtocolVersion { get; set; }
-	public Decision Overall { get; set; } = Decision.Unreviewed;
+	public Decision Overall { get; set; } = Decision.NotReviewed;
 }

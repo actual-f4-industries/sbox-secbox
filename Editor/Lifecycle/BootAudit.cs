@@ -165,7 +165,7 @@ public static class BootAudit
 					PackageIdent = ident,
 					Version = null,
 					ContentHash = hash,
-					Decision = existing?.Decision ?? Decision.Unreviewed,
+					Decision = existing?.Decision ?? Decision.NotReviewed,
 					ReviewedAt = DateTime.UtcNow,
 					CriticalCount = critical,
 					HighCount = high,

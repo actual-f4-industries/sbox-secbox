@@ -111,7 +111,7 @@ public static class ReviewDialog
 		IList<Finding> findings,
 		Decision decision)
 	{
-		if (decision == Decision.Unreviewed) return; // user clicked "decide later"
+		if (decision == Decision.NotReviewed) return; // user clicked "decide later"
 
 		var critical = findings.Count(f => f.Severity == Severity.Critical);
 		var high = findings.Count(f => f.Severity == Severity.High);

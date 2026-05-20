@@ -12,7 +12,7 @@ public sealed class TrustEntry
 	public string PackageIdent { get; set; }
 	public string Version { get; set; }
 	public string ContentHash { get; set; }
-	public Decision Decision { get; set; } = Decision.Unreviewed;
+	public Decision Decision { get; set; } = Decision.NotReviewed;
 	public DateTime ReviewedAt { get; set; }
 
 	public int CriticalCount { get; set; }

@@ -203,7 +203,7 @@ public static class InstallHook
 				PackageIdent = ident,
 				Version = pkg.Revision?.VersionId.ToString(),
 				ContentHash = hash,
-				Decision = Decision.Unreviewed,
+				Decision = Decision.NotReviewed,
 				ReviewedAt = DateTime.UtcNow,
 				CriticalCount = critical,
 				HighCount = high,

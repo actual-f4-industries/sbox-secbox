@@ -5,7 +5,7 @@ namespace Sandbox.SecBox.Bridge.Dto;
 // shares this enum).
 public enum Decision
 {
-	Unreviewed,
+	NotReviewed,
 	AllowOnce,
 	TrustAlways,
 	Block,

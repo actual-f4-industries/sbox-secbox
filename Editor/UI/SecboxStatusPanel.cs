@@ -184,7 +184,7 @@ public sealed class SecboxStatusPanel : Widget
 			{
 				PackageIdent = ident,
 				ContentHash = hash,
-				Decision = store.Find( hash )?.Decision ?? Decision.Unreviewed,
+				Decision = store.Find( hash )?.Decision ?? Decision.NotReviewed,
 				ReviewedAt = DateTime.UtcNow,
 				CriticalCount = critical,
 				HighCount = high,

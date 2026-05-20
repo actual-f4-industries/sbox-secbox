@@ -167,7 +167,7 @@ public static class MenuItems
 		ShowUnreviewedSummary();
 	}
 
-	[Menu( "Editor", "secbox/Show Unreviewed Findings..." )]
+	[Menu( "Editor", "secbox/Show Findings Not Reviewed..." )]
 	public static void ShowUnreviewedSummary()
 	{
 		var root = PackageLocator.CurrentProjectRoot();
@@ -179,7 +179,7 @@ public static class MenuItems
 
 		var store = TrustStore.Load( root );
 		var unreviewed = store.Entries
-			.Where( e => e.Decision == Decision.Unreviewed )
+			.Where( e => e.Decision == Decision.NotReviewed )
 			.OrderByDescending( e => e.CriticalCount + e.HighCount )
 			.ToList();
 

@@ -223,7 +223,7 @@ public sealed class ReviewWindow : BaseWindow
 		row.AddStretchCell();
 
 		var cancel = new Button("Decide later");
-		cancel.Clicked = () => { _onDecision(Decision.Unreviewed); Close(); };
+		cancel.Clicked = () => { _onDecision(Decision.NotReviewed); Close(); };
 		row.Add(cancel);
 
 		var allowOnce = new Button("Allow this session");
