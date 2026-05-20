@@ -6,7 +6,6 @@ Quality of Life:
  - Tell user to restart editor after enabling Sentinel.
  - Enable sentinal in 1 click after install.
  - Shows Detach and Attach regardless of Attach State.,
- - Change "Unreviewed" to "Review Incomplete"
  - Nothing is available until user restarts. And the header dropdown ui note this. "Please restart to enable features.
 
 Bug Reports:
@@ -15,5 +14,5 @@ Bug Reports:
  - Sentinel installer still has Ipsem Lorem
  - The badges don't render.
  - The detail pane renders while looking at "Browse" AND "Installed" and should only render when looking at the "Installed"
- - Installer shows "running: True" needs clarification.
+ - Sentinel Installer shows "running: True" needs clarification.
  - "Block" does nothing.
