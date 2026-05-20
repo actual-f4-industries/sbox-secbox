@@ -110,9 +110,14 @@ internal static class LibraryDetailPanel
 		{
 			var flags = BindingFlags.Public | BindingFlags.NonPublic | BindingFlags.Instance;
 
+			// Prefer LibraryProject-typed members. LibraryDetail has both a
+			// `Package` field (always set, even for not-installed browse rows)
+			// and an `Installed` LibraryProject field (null when the package
+			// isn't locally installed). We want the latter so the SecBox panel
+			// can hide itself when the user is browsing uninstalled packages.
 			foreach ( var fi in detailType.GetFields( flags ) )
 			{
-				if ( IsLibraryType( fi.FieldType ) )
+				if ( IsLibraryProjectType( fi.FieldType ) )
 				{
 					_selectedMember = fi;
 					_selectedMemberType = fi.FieldType;
@@ -120,14 +125,35 @@ internal static class LibraryDetailPanel
 					return;
 				}
 			}
+			foreach ( var pi in detailType.GetProperties( flags ) )
+			{
+				if ( IsLibraryProjectType( pi.PropertyType ) )
+				{
+					_selectedMember = pi;
+					_selectedMemberType = pi.PropertyType;
+					DiagnosticsLog.Trace( $"[secbox] LibraryDetail resolver: property '{pi.Name}' ({pi.PropertyType.Name})" );
+					return;
+				}
+			}
 
+			// Fallback: Package-typed member (legacy / future engine refactors).
+			foreach ( var fi in detailType.GetFields( flags ) )
+			{
+				if ( IsLibraryType( fi.FieldType ) )
+				{
+					_selectedMember = fi;
+					_selectedMemberType = fi.FieldType;
+					DiagnosticsLog.Trace( $"[secbox] LibraryDetail resolver (fallback): field '{fi.Name}' ({fi.FieldType.Name})" );
+					return;
+				}
+			}
 			foreach ( var pi in detailType.GetProperties( flags ) )
 			{
 				if ( IsLibraryType( pi.PropertyType ) )
 				{
 					_selectedMember = pi;
 					_selectedMemberType = pi.PropertyType;
-					DiagnosticsLog.Trace( $"[secbox] LibraryDetail resolver: property '{pi.Name}' ({pi.PropertyType.Name})" );
+					DiagnosticsLog.Trace( $"[secbox] LibraryDetail resolver (fallback): property '{pi.Name}' ({pi.PropertyType.Name})" );
 					return;
 				}
 			}
@@ -147,6 +173,14 @@ internal static class LibraryDetailPanel
 		if ( t == typeof( Package ) ) return true;
 		if ( typeof( LibraryProject ).IsAssignableFrom( t ) ) return true;
 		if ( typeof( Package ).IsAssignableFrom( t ) ) return true;
+		return false;
+	}
+
+	static bool IsLibraryProjectType( Type t )
+	{
+		if ( t == null ) return false;
+		if ( t == typeof( LibraryProject ) ) return true;
+		if ( typeof( LibraryProject ).IsAssignableFrom( t ) ) return true;
 		return false;
 	}
 
