@@ -26,7 +26,7 @@ public static class LibraryManagerInjector
 	// Actual work happens on the editor's main loop via [EditorEvent.Frame].
 	public static void Arm()
 	{
-		DiagnosticsLog.Info( "[secbox] LibraryManagerInjector armed — awaiting first frame" );
+		DiagnosticsLog.Info( "[secbox] LibraryManagerInjector armed - awaiting first frame" );
 	}
 
 	[EditorEvent.Frame]
@@ -55,7 +55,7 @@ public static class LibraryManagerInjector
 			if ( _cachedDock != null )
 			{
 				_cachedDock = null;
-				DiagnosticsLog.Trace( "[secbox] LibraryManagerInjector: dock gone — state reset" );
+				DiagnosticsLog.Trace( "[secbox] LibraryManagerInjector: dock gone - state reset" );
 			}
 			return;
 		}
@@ -81,6 +81,6 @@ public static class LibraryManagerInjector
 	public static void OnHotload()
 	{
 		_cachedDock = null;
-		DiagnosticsLog.Trace( "[secbox] LibraryManagerInjector: hotload — state reset" );
+		DiagnosticsLog.Trace( "[secbox] LibraryManagerInjector: hotload - state reset" );
 	}
 }

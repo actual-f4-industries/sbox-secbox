@@ -15,7 +15,7 @@ namespace Sandbox.SecBox.UI;
 public static class ReviewDialog
 {
 	// One open window per package ident. Engine fires install events with
-	// gamemenu/game/local/tool tags — that's up to 4 dialogs without dedup.
+	// gamemenu/game/local/tool tags - that's up to 4 dialogs without dedup.
 	// Keyed by ident lower-case for stability.
 	static readonly Dictionary<string, ReviewWindow> _openWindows =
 		new(StringComparer.OrdinalIgnoreCase);
@@ -65,7 +65,7 @@ public static class ReviewDialog
 				try
 				{
 					EditorUtility.DisplayDialog(
-						$"secbox — {packageIdent}",
+						$"secbox - {packageIdent}",
 						BuildFallbackText(packageIdent, contentHash, findings),
 						icon: "⚠️");
 				}
@@ -74,7 +74,7 @@ public static class ReviewDialog
 		});
 	}
 
-	// Pull the merged findings off the window when the user clicks a button —
+	// Pull the merged findings off the window when the user clicks a button -
 	// otherwise we'd persist only the initial-scan subset.
 	static IList<Finding> GetCurrentFindings(ReviewWindow window, IList<Finding> fallback)
 	{
@@ -98,7 +98,7 @@ public static class ReviewDialog
 			+ $"Findings: Critical={critical} High={high} Medium={medium} Low={low}\n\n"
 			+ string.Join("\n", findings.OrderByDescending(f => f.Severity).Take(10)
 				.Select(f => $"  [{f.Severity}] {f.RuleId} @ {Trunc(f.Location, 90)}"))
-			+ "\n\nReview decision was not recorded — see secbox log.";
+			+ "\n\nReview decision was not recorded - see secbox log.";
 	}
 
 	static string Trunc(string s, int max) =>

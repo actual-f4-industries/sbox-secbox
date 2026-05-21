@@ -6,7 +6,7 @@ using Sandbox.SecBox.Bridge.Dto;
 
 namespace Sandbox.SecBox.UI;
 
-// Custom Qt review window. Far prettier than EditorUtility.DisplayDialog —
+// Custom Qt review window. Far prettier than EditorUtility.DisplayDialog -
 // color-coded severity chips, scrollable findings list with expandable
 // details, four explicit-action buttons.
 //
@@ -107,8 +107,8 @@ public sealed class ReviewWindow : BaseWindow
 		var low = _findings.Count(f => f.Severity == Severity.Low);
 
 		WindowTitle = critical > 0
-			? $"secbox — CRITICAL findings in {_packageIdent}"
-			: $"secbox — review {_packageIdent}";
+			? $"secbox - CRITICAL findings in {_packageIdent}"
+			: $"secbox - review {_packageIdent}";
 		SetWindowIcon(critical > 0 ? "report" : "policy");
 
 		_headerSlot.Clear(true);

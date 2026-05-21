@@ -43,7 +43,7 @@ public static class MenuItems
 	public static void ShowDevModeStatus()
 	{
 		var active = CorePolicy.DevModeActive;
-		var resolved = CorePolicy.DevOverridePath ?? "(production mode — verified CDN cache)";
+		var resolved = CorePolicy.DevOverridePath ?? "(production mode - verified CDN cache)";
 		var cfg = SecboxConfig.Load();
 		var envOverride = System.Environment.GetEnvironmentVariable("SECBOX_DEV_PATH");
 
@@ -173,7 +173,7 @@ public static class MenuItems
 		var root = PackageLocator.CurrentProjectRoot();
 		if ( string.IsNullOrEmpty( root ) )
 		{
-			EditorUtility.DisplayDialog( "secbox", "No current project — open a project first." );
+			EditorUtility.DisplayDialog( "secbox", "No current project - open a project first." );
 			return;
 		}
 
@@ -218,7 +218,7 @@ public static class MenuItems
 			{
 				var s = Bridge.RuntimeMonitorBridge.GetStatus();
 				sensors = string.Join( "\n  ",
-					s.Select( x => $"{x.Id}: {x.Status}{(string.IsNullOrEmpty(x.LastError) ? "" : " — " + x.LastError)}" ) );
+					s.Select( x => $"{x.Id}: {x.Status}{(string.IsNullOrEmpty(x.LastError) ? "" : " - " + x.LastError)}" ) );
 			}
 			catch ( System.Exception ex ) { sensors = $"(status query failed: {ex.Message})"; }
 		}

@@ -12,11 +12,11 @@ namespace Sandbox.SecBox.Bridge;
 // Log when reachable, so live tailing works in normal operation.
 //
 // Hard invariants:
-//   - Never throws. Logging failures are swallowed — the LAST thing we want
+//   - Never throws. Logging failures are swallowed - the LAST thing we want
 //     is the logger crashing inside an exception handler.
 //   - Thread-safe via lock. We re-open the file each write so concurrent
 //     processes (CLI + editor running side-by-side) don't corrupt it.
-//   - Rotates at MaxBytes — current → .old, fresh file started.
+//   - Rotates at MaxBytes - current → .old, fresh file started.
 public static class DiagnosticsLog
 {
 	const long MaxBytes = 4 * 1024 * 1024; // 4 MB rotation
@@ -52,7 +52,7 @@ public static class DiagnosticsLog
 	{
 		var line = BuildLine(level, message, ex);
 
-		// File-only by design — secbox / sentinel emit hundreds of TRACE+INFO
+		// File-only by design - secbox / sentinel emit hundreds of TRACE+INFO
 		// lines per session (boot, ALC.Resolving, sentinel-log-route, runtime
 		// finding routing, etc.) and mirroring them to the engine log floods
 		// the editor console with content that's only useful when debugging
@@ -127,7 +127,7 @@ public static class DiagnosticsLog
 	//
 	// FirstChanceException tracing is ONLY enabled when verbose=true. The
 	// engine throws + catches many internal exceptions per second (asset
-	// serialization probes, Cecil resolution attempts, etc.) — tracing all
+	// serialization probes, Cecil resolution attempts, etc.) - tracing all
 	// of them floods the log and slows secbox itself.
 	static bool _hookedUnhandled;
 	static bool _hookedFirstChance;

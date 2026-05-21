@@ -10,13 +10,13 @@ using DiagnosticsLog = Sandbox.SecBox.Bridge.DiagnosticsLog;
 namespace Sandbox.SecBox.Lifecycle;
 
 // Subscribes to PackageManager.OnPackageInstalledToContext via reflection
-// (PackageManager is internal — no public alternative for code packages).
+// (PackageManager is internal - no public alternative for code packages).
 // Tries to insert at the front of the delegate chain so we run before
 // ToolsDll/GameInstanceDll, giving us a window to scan + prompt before the
 // new package's assemblies load. Falls back to appending if the field-level
 // trick fails on a future engine version.
 //
-// Scans are delegated to Secbox.Core via SecboxCoreClient — secbox.editor.dll
+// Scans are delegated to Secbox.Core via SecboxCoreClient - secbox.editor.dll
 // itself is just an adapter; all heavy detection logic lives in the
 // downloaded core DLL.
 public static class InstallHook
@@ -32,7 +32,7 @@ public static class InstallHook
 		if (pmType == null)
 		{
 			global::Sandbox.Internal.GlobalGameNamespace.Log.Warning(
-				"[secbox] PackageManager type not found — install hook disabled");
+				"[secbox] PackageManager type not found - install hook disabled");
 			return;
 		}
 
@@ -40,7 +40,7 @@ public static class InstallHook
 		if (ev == null)
 		{
 			global::Sandbox.Internal.GlobalGameNamespace.Log.Warning(
-				$"[secbox] {EventName} event not found on PackageManager — install hook disabled");
+				$"[secbox] {EventName} event not found on PackageManager - install hook disabled");
 			return;
 		}
 
@@ -64,7 +64,7 @@ public static class InstallHook
 		else if (ReflectionHelpers.AppendToChain(pmType, EventName, handler))
 		{
 			global::Sandbox.Internal.GlobalGameNamespace.Log.Warning(
-				"[secbox] install hook armed (appended — pre-load gating may not work)");
+				"[secbox] install hook armed (appended - pre-load gating may not work)");
 		}
 		else
 		{
@@ -102,7 +102,7 @@ public static class InstallHook
 		var projectRoot = PackageLocator.CurrentProjectRoot();
 		if (string.IsNullOrEmpty(projectRoot)) return;
 
-		// Skip the project's own package — it loads under "gamemenu" / "local"
+		// Skip the project's own package - it loads under "gamemenu" / "local"
 		// tags during editor boot and would otherwise trigger a full
 		// project-root scan. The current project's ident comes from its sbproj.
 		try
@@ -119,7 +119,7 @@ public static class InstallHook
 		catch { }
 
 		// Locate the package's library folder. FolderFor only returns paths
-		// strictly under <projectRoot>/Libraries/ — engine packages and the
+		// strictly under <projectRoot>/Libraries/ - engine packages and the
 		// project itself correctly return null here.
 		var folder = PackageLocator.FolderFor(pkg);
 		if (string.IsNullOrEmpty(folder))
@@ -159,7 +159,7 @@ public static class InstallHook
 		}
 
 		// Bridge call. Runs on a thread-pool thread (Task.Run) to break any
-		// SynchronizationContext capture the engine thread might have set —
+		// SynchronizationContext capture the engine thread might have set -
 		// without this, the async continuations inside EnsureReadyAsync /
 		// the Core's internal GetAwaiter().GetResult() deadlock against the
 		// hook thread we'd be blocking here.
@@ -215,7 +215,7 @@ public static class InstallHook
 			store.Save();
 
 			global::Sandbox.Internal.GlobalGameNamespace.Log.Warning(
-				$"[secbox] {ident}: {critical} critical / {high} high findings — opening review dialog");
+				$"[secbox] {ident}: {critical} critical / {high} high findings - opening review dialog");
 
 			Sandbox.SecBox.UI.ReviewDialog.Show(ident, hash, report.Findings, store);
 		}

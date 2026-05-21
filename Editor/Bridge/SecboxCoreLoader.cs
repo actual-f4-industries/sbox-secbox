@@ -61,7 +61,7 @@ public static class SecboxCoreLoader
 				// 0Harmony (+ bundled MonoMod) MUST be a SINGLE instance in the
 				// Default, non-collectible context. If this collectible ALC loads
 				// its own copy, Core binds to it while Harmony's MonoMod detours
-				// (emitted into Default) bind to a separate Default copy — the two
+				// (emitted into Default) bind to a separate Default copy - the two
 				// type identities collide and every patch throws "CecilILGenerator
 				// … violates the constraint of TTarget" (0 methods patched). Hand
 				// 0Harmony/MonoMod to Default so Core + the detours share one copy.
@@ -154,7 +154,7 @@ public static class SecboxCoreLoader
 				DiagnosticsLog.Error($"SHA-256 mismatch for {fileName}: expected {expectedHash} got {actualHash}");
 				throw new InvalidOperationException(
 					$"SHA-256 mismatch for {fileName}. Expected {expectedHash}, got {actualHash}. "
-					+ $"Refusing to load — possible tampering or stale adapter.");
+					+ $"Refusing to load - possible tampering or stale adapter.");
 			}
 
 			await File.WriteAllBytesAsync(destPath, bytes);

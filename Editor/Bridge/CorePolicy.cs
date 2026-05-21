@@ -5,9 +5,9 @@ namespace Sandbox.SecBox.Bridge;
 
 // Pinned configuration for downloading + verifying Secbox.Core.dll.
 //
-// SHA-256 hashes are baked in at adapter compile time — refusing any
+// SHA-256 hashes are baked in at adapter compile time - refusing any
 // downloaded blob whose hash doesn't match. To bump to a new core version:
-//   1. Push a vX.Y.Z tag — `.github/workflows/release.yml` builds every
+//   1. Push a vX.Y.Z tag - `.github/workflows/release.yml` builds every
 //      artifact and attaches them (with a `hashes.txt` manifest) to a new
 //      GitHub Release at https://github.com/actual-f4-industries/secbox.
 //   2. Copy the SHA-256s from that hashes.txt into CoreFiles below.
@@ -21,7 +21,7 @@ public static class CorePolicy
 	public const int RequiredProtocolVersion = 2;
 
 	// The version string is informational; identity is the SHA-256 hash.
-	// MUST match the GitHub Release tag exactly — the URL construction in
+	// MUST match the GitHub Release tag exactly - the URL construction in
 	// SecboxCoreLoader builds {BaseUrl}/{CoreVersion}/{filename}, which
 	// resolves to GitHub's canonical release-asset URL:
 	//   https://github.com/<org>/<repo>/releases/download/<tag>/<filename>
@@ -42,7 +42,7 @@ public static class CorePolicy
 		("Secbox.Rules.dll",                       "e9f2b0aabff8ea49a1a7bbee588121019fb37661051766d5dacb7d9dbeb4e260"),
 		("Secbox.Scanner.dll",                     "b9bdd2bb556bdba505c840bdcea4811f2adbc2627bdd90b73868d79a2eb08981"),
 		("Mono.Cecil.dll",                         "831dca77470d85cb6ffbea3072daa7a3df5b7c9fcfd9c3f43674a9be99d4bfcf"),
-		// Tier E (Harmony runtime patches) — ManagedCallSensor patches
+		// Tier E (Harmony runtime patches) - ManagedCallSensor patches
 		// System.Diagnostics.Process.Start for library-attributed spawns.
 		("0Harmony.dll",                           "817b0127f0f512122a0e0f8cab1d89c6431f6533898e473bbecdc61846cf945c"),
 		// WPF decision dialog. The Tier E hook Process.Starts this exe
@@ -77,10 +77,10 @@ public static class CorePolicy
 	}
 
 	// Resolution order:
-	//   1. %SECBOX_DEV_PATH% env var (highest priority — for one-off testing)
+	//   1. %SECBOX_DEV_PATH% env var (highest priority - for one-off testing)
 	//   2. config.json DevPath if DevMode = true and DevPath non-empty
 	//   3. DevDefaultPath if DevMode = true but DevPath blank
-	//   4. null (production mode — use CDN download path)
+	//   4. null (production mode - use CDN download path)
 	public static string DevOverridePath
 	{
 		get

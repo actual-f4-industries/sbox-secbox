@@ -6,7 +6,7 @@ using Sandbox.SecBox.Bridge.Dto;
 namespace Sandbox.SecBox.Bridge;
 
 // Reflective access to the BridgeProtocol v2 runtime-monitoring methods on
-// Secbox.Core.SecboxApi. Mirrors SecboxCoreClient's pattern — methods are
+// Secbox.Core.SecboxApi. Mirrors SecboxCoreClient's pattern - methods are
 // resolved lazily on first use, signatures are pinned by name.
 //
 // The adapter passes its own Action<string> sink to AttachRuntimeSensors;
@@ -29,7 +29,7 @@ public static class RuntimeMonitorBridge
 	{
 		if (_attach != null && _detach != null && _status != null) return;
 		var asm = SecboxCoreLoader.CoreAssembly
-			?? throw new InvalidOperationException("Secbox.Core not loaded — call EnsureReadyAsync first.");
+			?? throw new InvalidOperationException("Secbox.Core not loaded - call EnsureReadyAsync first.");
 		var t = asm.GetType(ApiClassName)
 			?? throw new InvalidOperationException($"{ApiClassName} not found.");
 

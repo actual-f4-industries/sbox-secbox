@@ -4,7 +4,7 @@ using Sandbox.SecBox.UI;
 
 namespace Sandbox.SecBox.Lifecycle;
 
-// ModuleInitializer fires once when the runtime loads our assembly — the
+// ModuleInitializer fires once when the runtime loads our assembly - the
 // earliest possible C# entry point, before any of our static constructors
 // run on first use. Use it to arm subscriptions that must be in place
 // before any third-party library install can happen.
@@ -24,7 +24,7 @@ internal static class SecboxBoot
 		// to avoid flooding the log with engine-internal caught exceptions.
 		var cfg = SecboxConfig.Load();
 		DiagnosticsLog.InstallUnhandledHandler(verbose: cfg.VerboseDiagnostics);
-		DiagnosticsLog.Info($"[secbox] boot start — adapter version {typeof(SecboxBoot).Assembly.GetName().Version}, "
+		DiagnosticsLog.Info($"[secbox] boot start - adapter version {typeof(SecboxBoot).Assembly.GetName().Version}, "
 			+ $"core required v{CorePolicy.RequiredProtocolVersion}, dev mode {(CorePolicy.DevModeActive ? "ON" : "off")}, "
 			+ $"verbose {(cfg.VerboseDiagnostics ? "ON" : "off")}");
 
@@ -33,7 +33,7 @@ internal static class SecboxBoot
 		DiagnosticsLog.Wrap("LibraryManagerInjector.Arm", LibraryManagerInjector.Arm);
 
 		// Tier B (always) + optional Tier A (Sentinel). Both ride on the bridge
-		// to Secbox.Core — fire-and-forget so an ALC load failure here doesn't
+		// to Secbox.Core - fire-and-forget so an ALC load failure here doesn't
 		// keep us from completing boot. Coordinator handles its own retries.
 		System.Threading.Tasks.Task.Run(() =>
 		{

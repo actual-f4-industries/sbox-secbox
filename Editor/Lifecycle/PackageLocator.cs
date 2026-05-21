@@ -5,7 +5,7 @@ using Editor;
 namespace Sandbox.SecBox.Lifecycle;
 
 // Locates a Package's on-disk folder so we can scan it. Returns ONLY paths
-// under <projectRoot>/Libraries/<something>/ — never the project root itself,
+// under <projectRoot>/Libraries/<something>/ - never the project root itself,
 // never anything outside the project tree. Engine packages and the project's
 // own package both correctly return null, so InstallHook skips them.
 internal static class PackageLocator
@@ -35,11 +35,11 @@ internal static class PackageLocator
 		var bySegment = Path.Combine(libRoot, lastSegment);
 		if (Directory.Exists(bySegment) && IsUnderLibRoot(bySegment, libRoot)) return bySegment;
 
-		// LocalPackage's CodePath. CodePath is usually <something>/Code — we want
+		// LocalPackage's CodePath. CodePath is usually <something>/Code - we want
 		// the parent. But ONLY accept it if that parent lands under Libraries/.
 		// Without that check, the deadlock_district project's own LocalPackage
 		// (CodePath = <projectRoot>/Code, parent = <projectRoot>) would resolve
-		// to the entire project — catastrophic over-scan.
+		// to the entire project - catastrophic over-scan.
 		var codePath = ReflectionHelpers.GetProp(pkg, "CodePath") as string;
 		if (!string.IsNullOrEmpty(codePath) && Directory.Exists(codePath))
 		{
@@ -51,7 +51,7 @@ internal static class PackageLocator
 		return null;
 	}
 
-	// Defence-in-depth — ensures returned paths are strict descendants of
+	// Defence-in-depth - ensures returned paths are strict descendants of
 	// <projectRoot>/Libraries/. Refuses Libraries/ itself.
 	static bool IsUnderLibRoot(string candidate, string libRoot)
 	{
@@ -72,7 +72,7 @@ internal static class PackageLocator
 	}
 
 	// Locate our own library's on-disk folder by scanning LibrarySystem.All
-	// for the one whose root contains secbox.sbproj. Content-based —
+	// for the one whose root contains secbox.sbproj. Content-based -
 	// survives the engine's "{org}.{ident}#local" FullIdent format and any
 	// renames. Assembly.Location is unusable here because the editor
 	// compiles adapter assemblies in-memory.

@@ -152,7 +152,7 @@ public static class ConcernMapper
 	}
 
 	/// <summary>
-	/// Helper for icon selection — returns true if the concern has Critical or High severity.
+	/// Helper for icon selection - returns true if the concern has Critical or High severity.
 	/// </summary>
 	public static bool HasCriticalOrHigh(Concern concern)
 	{

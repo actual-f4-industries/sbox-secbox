@@ -43,7 +43,7 @@ public sealed class SecboxStatusPanel : Widget
 		Layout.Spacing = 4;
 		SetStyles( CssCard );
 
-		// Start hidden — RefreshImpl flips us visible once it confirms the
+		// Start hidden - RefreshImpl flips us visible once it confirms the
 		// detail pane is showing an installed LibraryProject. Avoids a 1-2
 		// frame flash when the user opens the Browse tab.
 		Visible = false;
@@ -94,7 +94,7 @@ public sealed class SecboxStatusPanel : Widget
 		var lib = _currentLibraryResolver();
 
 		// Browse view exposes a Package (not yet installed locally); the SecBox
-		// panel is meaningless there — no folder to hash, no trust entry to show.
+		// panel is meaningless there - no folder to hash, no trust entry to show.
 		// Only the Installed view yields a LibraryProject. Hide otherwise.
 		var showPanel = lib is LibraryProject;
 		if ( Visible != showPanel ) Visible = showPanel;
@@ -134,7 +134,7 @@ public sealed class SecboxStatusPanel : Widget
 
 		if ( string.IsNullOrEmpty( folder ) )
 		{
-			_statusLabel.Text = "engine/external package — out of scope";
+			_statusLabel.Text = "engine/external package - out of scope";
 			_countsLabel.Text = "";
 			return;
 		}
@@ -152,7 +152,7 @@ public sealed class SecboxStatusPanel : Widget
 		var entry = store.Find( hash );
 		if ( entry == null )
 		{
-			_statusLabel.Text = "not yet scanned — click Re-scan";
+			_statusLabel.Text = "not yet scanned - click Re-scan";
 			_countsLabel.Text = "";
 			return;
 		}
@@ -170,7 +170,7 @@ public sealed class SecboxStatusPanel : Widget
 		_statusLabel.Text = "scanning…";
 		_lastIdentShown = null; // force refresh after scan
 
-		// Off the UI thread — the Core scan can take seconds for big libs and
+		// Off the UI thread - the Core scan can take seconds for big libs and
 		// holds GetAwaiter().GetResult internally that would deadlock here.
 		System.Threading.Tasks.Task.Run( () => RunScan( ident, folder ) );
 	}

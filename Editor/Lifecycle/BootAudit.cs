@@ -36,7 +36,7 @@ public static class BootAudit
 		var projectRoot = PackageLocator.CurrentProjectRoot();
 		if (string.IsNullOrEmpty(projectRoot))
 		{
-			DiagnosticsLog.Warn("boot audit: no current project — abort");
+			DiagnosticsLog.Warn("boot audit: no current project - abort");
 			return;
 		}
 		DiagnosticsLog.Trace($"boot audit: projectRoot={projectRoot}");
@@ -44,14 +44,14 @@ public static class BootAudit
 		var store = TrustStore.Load(projectRoot);
 		if (!store.Policy.ScanOnBoot)
 		{
-			DiagnosticsLog.Info("boot audit: ScanOnBoot policy is OFF — abort");
+			DiagnosticsLog.Info("boot audit: ScanOnBoot policy is OFF - abort");
 			return;
 		}
 
 		var libraries = LibrarySystem.All?.ToList();
 		if (libraries == null || libraries.Count == 0)
 		{
-			DiagnosticsLog.Info("boot audit: LibrarySystem.All is empty — no libraries to scan");
+			DiagnosticsLog.Info("boot audit: LibrarySystem.All is empty - no libraries to scan");
 			return;
 		}
 
@@ -63,7 +63,7 @@ public static class BootAudit
 		}
 		catch (Exception ex)
 		{
-			DiagnosticsLog.Error("boot audit: core load failed — abort", ex);
+			DiagnosticsLog.Error("boot audit: core load failed - abort", ex);
 			return;
 		}
 
@@ -81,7 +81,7 @@ public static class BootAudit
 			string libRootPath = null;
 			try
 			{
-				// LibraryProject.Project is a public property — use it directly.
+				// LibraryProject.Project is a public property - use it directly.
 				var proj = lib?.Project;
 				ident = proj?.Package?.FullIdent ?? proj?.Package?.Ident;
 				libRootPath = proj?.RootDirectory?.FullName;
@@ -114,7 +114,7 @@ public static class BootAudit
 
 			if (string.IsNullOrEmpty(libRootPath) || !System.IO.Directory.Exists(libRootPath))
 			{
-				DiagnosticsLog.Trace($"boot audit: skip {ident} — no folder on disk (path={libRootPath ?? "<null>"})");
+				DiagnosticsLog.Trace($"boot audit: skip {ident} - no folder on disk (path={libRootPath ?? "<null>"})");
 				skippedNoFolder++;
 				continue;
 			}
@@ -126,7 +126,7 @@ public static class BootAudit
 			var fullLibPath = System.IO.Path.GetFullPath(libRootPath);
 			if (!fullLibPath.StartsWith(libRoot, StringComparison.OrdinalIgnoreCase))
 			{
-				DiagnosticsLog.Trace($"boot audit: skip {ident} — not under {libRoot} (was {fullLibPath})");
+				DiagnosticsLog.Trace($"boot audit: skip {ident} - not under {libRoot} (was {fullLibPath})");
 				skippedNotInLibraries++;
 				continue;
 			}
@@ -135,7 +135,7 @@ public static class BootAudit
 			var existing = store.Find(hash);
 			if (existing != null && existing.Decision is Decision.TrustAlways or Decision.Block)
 			{
-				DiagnosticsLog.Trace($"boot audit: skip {ident} — already decided ({existing.Decision})");
+				DiagnosticsLog.Trace($"boot audit: skip {ident} - already decided ({existing.Decision})");
 				reviewedSkipped++;
 				continue;
 			}

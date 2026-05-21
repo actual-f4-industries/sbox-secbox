@@ -50,7 +50,7 @@ public static class RuntimeMonitor
 		var location = asm.Location;
 
 		// Gate by LOCATION not name. Only scan assemblies loaded from the
-		// current project's Libraries/ tree — that's where third-party editor
+		// current project's Libraries/ tree - that's where third-party editor
 		// libraries live. Anything from the engine bin (HarfBuzzSharp, ExCSS,
 		// Sandbox.*, etc.) or from secbox's own ALC cache is skipped.
 		if (!IsUserLibraryAssembly(name, location))
@@ -93,7 +93,7 @@ public static class RuntimeMonitor
 		{
 			global::Sandbox.Internal.GlobalGameNamespace.Log.Error(
 				$"[secbox] runtime monitor: {name} has {critical} CRITICAL findings "
-				+ $"AFTER load — static ctor damage may already be done. "
+				+ $"AFTER load - static ctor damage may already be done. "
 				+ $"First finding: {report.Findings.First(f => f.Severity == Severity.Critical)}");
 		}
 		else if (high > 0)
@@ -111,7 +111,7 @@ public static class RuntimeMonitor
 	{
 		if (string.IsNullOrEmpty(location)) return false;
 
-		// secbox itself — never scan our own.
+		// secbox itself - never scan our own.
 		if (assemblyName.StartsWith("secbox", StringComparison.OrdinalIgnoreCase)) return false;
 		if (assemblyName.StartsWith("Secbox.", StringComparison.OrdinalIgnoreCase)) return false;
 

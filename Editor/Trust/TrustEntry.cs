@@ -5,7 +5,7 @@ namespace Sandbox.SecBox;
 
 // One trust record. Identity is (PackageIdent, Version, ContentHash). Any of
 // those changing means the user must re-review. ContentHash is the
-// authoritative identity — version bumps without content changes are still
+// authoritative identity - version bumps without content changes are still
 // trusted, content changes without a version bump still re-prompt.
 public sealed class TrustEntry
 {

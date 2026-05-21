@@ -25,7 +25,7 @@ public static class SecboxCoreClient
 
 	public static async Task EnsureReadyAsync()
 	{
-		// Short-circuit if already wired — repeat callers (RuntimeMonitor
+		// Short-circuit if already wired - repeat callers (RuntimeMonitor
 		// fires once per assembly load) don't need to re-do the handshake.
 		if (_getInfo != null && _scanFolder != null && _scanAssembly != null && _scanSource != null)
 			return;
@@ -46,7 +46,7 @@ public static class SecboxCoreClient
 
 		if (_getInfo == null || _scanFolder == null || _scanAssembly == null || _scanSource == null)
 		{
-			DiagnosticsLog.Error($"{ApiClassName} missing expected methods — protocol skew");
+			DiagnosticsLog.Error($"{ApiClassName} missing expected methods - protocol skew");
 			throw new InvalidOperationException(
 				$"{ApiClassName} is missing one or more expected methods (signature mismatch / protocol skew).");
 		}

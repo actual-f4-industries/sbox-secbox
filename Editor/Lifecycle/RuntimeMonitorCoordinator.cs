@@ -8,28 +8,28 @@ using DiagnosticsLog = Sandbox.SecBox.Bridge.DiagnosticsLog;
 
 namespace Sandbox.SecBox.Lifecycle;
 
-// Orchestrates Tier E — the in-editor managed-call enforcement hook. Wires the
+// Orchestrates Tier E - the in-editor managed-call enforcement hook. Wires the
 // event sink to DiagnosticsLog + a small in-memory ring the status panel reads
 // for live preview.
 //
 // Detection tiers were removed: Tier A (Sentinel ETW service + MSI) and Tier B
 // (native CLR profiler) are gone. The only sensor is the Harmony hook, which
 // suspends the calling thread and shows its OWN blocking decision dialog
-// in-process — so the adapter never spawns an AlertUI itself anymore.
+// in-process - so the adapter never spawns an AlertUI itself anymore.
 //
 // Lifecycle:
-//   * EnsureAttached — idempotent, called after SecboxCoreClient is ready (boot).
-//   * ReapplySettings — call when the user toggles enforcement; detach + reattach.
-//   * Detach — call on shutdown / dev-mode reload.
+//   * EnsureAttached - idempotent, called after SecboxCoreClient is ready (boot).
+//   * ReapplySettings - call when the user toggles enforcement; detach + reattach.
+//   * Detach - call on shutdown / dev-mode reload.
 public static class RuntimeMonitorCoordinator
 {
 	// Locks are split so the event hot path doesn't share a lock with the
 	// attach lifecycle or with reader queries.
 	//
-	//  _attachLock — serialises Attach/Detach/Reapply. Cold path.
-	//  _writeLock  — protects the _recent queue. Held briefly during enqueue
+	//  _attachLock - serialises Attach/Detach/Reapply. Cold path.
+	//  _writeLock  - protects the _recent queue. Held briefly during enqueue
 	//                + snapshot publish. Held ONLY by event-receiver threads.
-	//  _snapshot   — volatile reference, atomic publish on each event.
+	//  _snapshot   - volatile reference, atomic publish on each event.
 	//                Readers never take any lock; just read the field.
 	static readonly object _attachLock = new();
 	static readonly object _writeLock = new();
@@ -54,7 +54,7 @@ public static class RuntimeMonitorCoordinator
 		var cfg = SecboxConfig.Load();
 		if (!cfg.RuntimeMonitoringEnabled)
 		{
-			DiagnosticsLog.Info("runtime monitoring disabled in config — skipping attach");
+			DiagnosticsLog.Info("runtime monitoring disabled in config - skipping attach");
 			return;
 		}
 
@@ -95,7 +95,7 @@ public static class RuntimeMonitorCoordinator
 				{
 					DiagnosticsLog.Info($"runtime sensors attached: "
 						+ string.Join(", ", result.Sensors.Select(s => $"{s.Id}={s.Status}"
-							+ (string.IsNullOrEmpty(s.LastError) ? "" : " — " + s.LastError))));
+							+ (string.IsNullOrEmpty(s.LastError) ? "" : " - " + s.LastError))));
 				}
 				else
 				{
@@ -106,7 +106,7 @@ public static class RuntimeMonitorCoordinator
 						? "(none)"
 						: string.Join(", ", result.Sensors.Select(s =>
 							$"{s.Id}={s.Status}"
-							+ (string.IsNullOrEmpty(s.LastError) ? "" : " — " + s.LastError)));
+							+ (string.IsNullOrEmpty(s.LastError) ? "" : " - " + s.LastError)));
 					DiagnosticsLog.Warn($"runtime sensor attach reported failure: {result.Message ?? "(no message)"} | sensors=[{sensorDump}]");
 				}
 			}
@@ -154,7 +154,7 @@ public static class RuntimeMonitorCoordinator
 		}
 		if (f == null) return;
 
-		// Hot path. _writeLock is the SHORT critical section — never held for
+		// Hot path. _writeLock is the SHORT critical section - never held for
 		// any other purpose, so the UI thread cannot block on it via any reader
 		// (RecentFindings reads the volatile snapshot lock-free).
 		lock (_writeLock)
@@ -166,7 +166,7 @@ public static class RuntimeMonitorCoordinator
 
 		try { FindingReceived?.Invoke(f); } catch { }
 
-		// Record only — the Tier E hook shows its own blocking decision dialog
+		// Record only - the Tier E hook shows its own blocking decision dialog
 		// in-process, so the adapter does not spawn any UI here.
 		var line = $"[{f.Severity}] {f.Kind} @ {f.Target ?? "(no target)"} "
 			+ (string.IsNullOrEmpty(f.CallerAssembly) ? "" : $"by {f.CallerAssembly}::{f.CallerMethod} ")

@@ -11,7 +11,7 @@ namespace Sandbox.SecBox.Lifecycle;
 internal static class ReflectionHelpers
 {
 	// Locate Sandbox.PackageManager (internal static class). Returns null if
-	// the engine renames or removes it — caller must handle gracefully.
+	// the engine renames or removes it - caller must handle gracefully.
 	public static Type PackageManagerType()
 	{
 		// First try direct: Sandbox.Engine assembly is loaded by the time secbox
@@ -31,7 +31,7 @@ internal static class ReflectionHelpers
 	// static. We swap the field directly so our handler runs first.
 	//
 	// Why this matters: GameInstanceDll/ToolsDll subscribe at engine boot. If
-	// secbox subscribes normally it runs LAST in the chain — by which point
+	// secbox subscribes normally it runs LAST in the chain - by which point
 	// the engine has already called LoadPackage and the package's static
 	// constructors have run. Running first lets a synchronous scan + modal
 	// dialog block before the engine ever sees the install event.
@@ -56,7 +56,7 @@ internal static class ReflectionHelpers
 		return true;
 	}
 
-	// Fallback subscription via the public event accessor — appends to the end
+	// Fallback subscription via the public event accessor - appends to the end
 	// of the chain. Returns true on success.
 	public static bool AppendToChain( Type containingType, string eventName, Delegate ourHandler )
 	{
@@ -89,12 +89,12 @@ internal static class ReflectionHelpers
 
 	// Resolve a type by full name when it's declared `internal` in another
 	// assembly. Editor.LibraryManager.LibraryList / LibraryDetail are the
-	// callers — we can't reference them at compile time, but their hosting
+	// callers - we can't reference them at compile time, but their hosting
 	// assembly is loaded by the time editor code runs.
 	//
 	// Anchor type lets us short-circuit to the right assembly when known.
 	// Falls back to scanning every loaded assembly. Returns null if the type
-	// has been renamed or removed — caller must log and degrade gracefully.
+	// has been renamed or removed - caller must log and degrade gracefully.
 	public static Type ResolveEditorType( string fullName, Type anchor = null )
 	{
 		if ( string.IsNullOrEmpty( fullName ) ) return null;
@@ -112,7 +112,7 @@ internal static class ReflectionHelpers
 					var t = asm.GetType( fullName, throwOnError: false );
 					if ( t != null ) return t;
 				}
-				catch { /* dynamic / refl-only assemblies throw — skip */ }
+				catch { /* dynamic / refl-only assemblies throw - skip */ }
 			}
 		}
 		catch { }

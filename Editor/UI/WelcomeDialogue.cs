@@ -9,10 +9,10 @@ namespace Sandbox.SecBox.UI;
 
 // One-time post-install welcome shown the first time secbox is loaded into
 // a project. Trigger lives in Lifecycle.WelcomeDialogueTrigger; this file
-// is pure UI. Modelled on SentinelInstallDialog — same CSS, same Layout
+// is pure UI. Modelled on SentinelInstallDialog - same CSS, same Layout
 // idioms, same MainThread.Queue pattern for cross-thread label updates.
 //
-// Spelled "Dialogue" intentionally — chosen by the user despite sibling
+// Spelled "Dialogue" intentionally - chosen by the user despite sibling
 // classes (SentinelInstallDialog, ReviewWindow, etc.) using "Dialog".
 public sealed class WelcomeDialogue : BaseWindow
 {
@@ -36,7 +36,7 @@ public sealed class WelcomeDialogue : BaseWindow
 	{
 		DeleteOnClose = true;
 		Size = new Vector2(620, 620);
-		WindowTitle = "secbox — welcome";
+		WindowTitle = "secbox - welcome";
 		SetWindowIcon("shield_lock");
 
 		Layout = Layout.Column();
@@ -81,7 +81,7 @@ public sealed class WelcomeDialogue : BaseWindow
 			"On every editor boot, SecBox walks your project's Libraries/ folder and scans new or "
 			+ "modified packages. Findings are recorded in <projectRoot>/.secbox/trust.json. "
 			+ "Until you mark a package Trusted, runtime monitoring keeps an eye on what its code "
-			+ "actually does — file writes, network calls, process spawns.");
+			+ "actually does - file writes, network calls, process spawns.");
 	}
 
 	void BuildHowToUse()
@@ -232,7 +232,7 @@ public sealed class WelcomeDialogue : BaseWindow
 		var root = PackageLocator.CurrentSecboxLibraryRoot();
 		if (string.IsNullOrEmpty(root))
 		{
-			DiagnosticsLog.Warn("[secbox] welcome: could not resolve secbox library root — banner skipped");
+			DiagnosticsLog.Warn("[secbox] welcome: could not resolve secbox library root - banner skipped");
 			return null;
 		}
 

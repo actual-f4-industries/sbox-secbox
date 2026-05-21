@@ -7,7 +7,7 @@ using Sandbox.SecBox.UI;
 namespace Sandbox.SecBox.Lifecycle;
 
 // Decides whether to show the post-install welcome and fires it exactly once
-// per editor session. Frame-driven so we can self-heal — we wait until our
+// per editor session. Frame-driven so we can self-heal - we wait until our
 // library is loaded before showing. Same throttle / latch pattern as
 // LibraryManagerInjector.
 //
@@ -17,7 +17,7 @@ namespace Sandbox.SecBox.Lifecycle;
 //   - Otherwise show once. Marker is written on every close path.
 //
 // Marker lives inside the library folder so it auto-vanishes when the
-// user uninstalls via the Library Manager — the engine deletes the whole
+// user uninstalls via the Library Manager - the engine deletes the whole
 // folder, marker dies with it, reinstall shows the welcome again. No
 // uninstall-detection logic needed.
 public static class WelcomeDialogueTrigger
@@ -43,7 +43,7 @@ public static class WelcomeDialogueTrigger
 	[EditorEvent.Hotload]
 	public static void OnHotload()
 	{
-		// Do NOT reset _decided — hot-reloading secbox code must not re-fire
+		// Do NOT reset _decided - hot-reloading secbox code must not re-fire
 		// the welcome. Only the throttle counter is safe to reset.
 		_frameCounter = 0;
 	}
@@ -70,7 +70,7 @@ public static class WelcomeDialogueTrigger
 
 	static void DecideAndMaybeShow()
 	{
-		// Bail cheap if our library isn't enumerable yet — avoids re-reading
+		// Bail cheap if our library isn't enumerable yet - avoids re-reading
 		// config every tick during editor warm-up.
 		var libRoot = PackageLocator.CurrentSecboxLibraryRoot();
 		if ( string.IsNullOrEmpty( libRoot ) )
@@ -80,7 +80,7 @@ public static class WelcomeDialogueTrigger
 		if ( cfg.WelcomeDialogueDismissedGlobally )
 		{
 			_decided = true;
-			DiagnosticsLog.Info( "[secbox] welcome: skipped — globally dismissed" );
+			DiagnosticsLog.Info( "[secbox] welcome: skipped - globally dismissed" );
 			return;
 		}
 
@@ -115,7 +115,7 @@ public static class WelcomeDialogueTrigger
 	{
 		DiagnosticsLog.Wrap( "WelcomeDialogueTrigger.OnClose", () =>
 		{
-			// Write marker on every auto-shown close — even "Got it" without
+			// Write marker on every auto-shown close - even "Got it" without
 			// the don't-show checkbox should stop the welcome reappearing in
 			// THIS project. Manual re-opens via menu skip the write (the
 			// marker is already there, and re-opening shouldn't change
@@ -149,7 +149,7 @@ public static class WelcomeDialogueTrigger
 		{
 			DiagnosticsLog.Warn( $"[secbox] welcome: failed to write marker at {markerPath}: {ex.Message}" );
 			// _decided is already true; we won't loop. Welcome may reappear
-			// next session if the library root is unwritable — acceptable.
+			// next session if the library root is unwritable - acceptable.
 		}
 	}
 }

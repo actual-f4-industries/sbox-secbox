@@ -8,7 +8,7 @@ using DiagnosticsLog = Sandbox.SecBox.Bridge.DiagnosticsLog;
 namespace Sandbox.SecBox.UI;
 
 // Installs an ItemPaint wrapper on every LibraryList descendant of the
-// LibraryManagerDock (there are two — ListLocal and ListGlobal — held as
+// LibraryManagerDock (there are two - ListLocal and ListGlobal - held as
 // private fields, so we discover them by descendant walk rather than by
 // reflecting the dock's fields).
 //
@@ -27,7 +27,7 @@ internal static class LibraryRowBadge
 
 	// Per-list state: original paint (or null) + our wrapper closure for that
 	// list. Keyed by the list widget itself. References go stale when Qt
-	// destroys the widget — IsValid catches that on each tick.
+	// destroys the widget - IsValid catches that on each tick.
 	sealed class ListState
 	{
 		public Action<VirtualWidget> Original;
@@ -41,7 +41,7 @@ internal static class LibraryRowBadge
 	static DateTime _cacheLoadedAt = DateTime.MinValue;
 	static readonly TimeSpan CacheTtl = TimeSpan.FromSeconds( 3 );
 
-	// True once we've ever managed to install at least one list. Cosmetic —
+	// True once we've ever managed to install at least one list. Cosmetic -
 	// caller logs once on the install transition.
 	public static bool Installed { get; private set; }
 
@@ -61,7 +61,7 @@ internal static class LibraryRowBadge
 				"Editor.LibraryManager.LibraryList", anchor: libraryManagerDock.GetType() );
 			if ( _listType == null )
 			{
-				DiagnosticsLog.Warn( "[secbox] LibraryRowBadge: Editor.LibraryManager.LibraryList type not found — row badges disabled" );
+				DiagnosticsLog.Warn( "[secbox] LibraryRowBadge: Editor.LibraryManager.LibraryList type not found - row badges disabled" );
 				return false;
 			}
 		}

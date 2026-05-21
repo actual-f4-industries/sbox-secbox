@@ -46,7 +46,7 @@ internal static class LibraryDetailPanel
 				"Editor.LibraryManager.LibraryDetail", anchor: libraryManagerDock.GetType() );
 			if ( _detailType == null )
 			{
-				DiagnosticsLog.Warn( "[secbox] LibraryDetailPanel: Editor.LibraryManager.LibraryDetail type not found — detail panel disabled" );
+				DiagnosticsLog.Warn( "[secbox] LibraryDetailPanel: Editor.LibraryManager.LibraryDetail type not found - detail panel disabled" );
 				return false;
 			}
 			DiscoverSelectedMember( _detailType );
@@ -88,7 +88,7 @@ internal static class LibraryDetailPanel
 			foreach ( var p in libraryManagerDock.GetDescendants<SecboxStatusPanel>() )
 				p.Refresh();
 		}
-		catch { /* paint-adjacent — never propagate */ }
+		catch { /* paint-adjacent - never propagate */ }
 
 		return any;
 	}
@@ -158,7 +158,7 @@ internal static class LibraryDetailPanel
 				}
 			}
 
-			DiagnosticsLog.Warn( "[secbox] LibraryDetailPanel: no LibraryProject/Package-typed member found on LibraryDetail — panel will show 'no library selected'" );
+			DiagnosticsLog.Warn( "[secbox] LibraryDetailPanel: no LibraryProject/Package-typed member found on LibraryDetail - panel will show 'no library selected'" );
 		}
 		catch ( Exception ex )
 		{
@@ -202,6 +202,6 @@ internal static class LibraryDetailPanel
 	static void ResetState()
 	{
 		Installed = false;
-		// _detailType + _selectedMember are stable across dock lifetimes — keep them cached.
+		// _detailType + _selectedMember are stable across dock lifetimes - keep them cached.
 	}
 }

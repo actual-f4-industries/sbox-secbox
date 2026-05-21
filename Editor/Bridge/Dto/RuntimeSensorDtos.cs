@@ -3,13 +3,13 @@ using System.Collections.Generic;
 namespace Sandbox.SecBox.Bridge.Dto;
 
 // Mirror DTOs for the runtime-monitoring bridge (BridgeProtocol v2). The
-// editor adapter cannot reference Secbox.Core types directly — the engine
-// regenerates the adapter's csproj on save and would strip custom refs —
+// editor adapter cannot reference Secbox.Core types directly - the engine
+// regenerates the adapter's csproj on save and would strip custom refs -
 // so we re-declare the shapes locally and rely on JSON tolerance.
 
 public sealed class RuntimeSensorOptions
 {
-	// Tier E only — the managed-call enforcement hook. Detection tiers were
+	// Tier E only - the managed-call enforcement hook. Detection tiers were
 	// removed. Core ignores any extra/legacy fields on deserialize.
 	public bool EnableManagedHook { get; set; } = true;
 	// Bitmask, mirrors Secbox.Core.RuntimeSensors.SensorCapabilities.
@@ -39,7 +39,7 @@ public sealed class SensorStatusInfo
 }
 
 // Wire shape of one AttributedFinding event delivered via the eventSink
-// callback. The adapter consumes these as raw JSON strings — it does not
+// callback. The adapter consumes these as raw JSON strings - it does not
 // strictly need to deserialize, but the structured DTO is here for UI use.
 public sealed class RuntimeFinding
 {
