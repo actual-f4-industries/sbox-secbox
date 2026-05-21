@@ -137,11 +137,6 @@ public sealed class WelcomeDialogue : BaseWindow
 		github.Clicked = OnOpenGitHub;
 		row.Add(github);
 
-		var settings = new Button("Open monitoring settings");
-		settings.Icon = "tune";
-		settings.Clicked = OnOpenSettings;
-		row.Add(settings);
-
 		var gotIt = new Button.Primary("Got it");
 		gotIt.Icon = "check";
 		gotIt.Clicked = () => Close();
@@ -161,19 +156,6 @@ public sealed class WelcomeDialogue : BaseWindow
 		catch (Exception ex)
 		{
 			DiagnosticsLog.Warn($"[secbox] welcome: open github failed: {ex.Message}");
-		}
-	}
-
-	void OnOpenSettings()
-	{
-		try
-		{
-			Close();
-			new SentinelSettingsDialog().Show();
-		}
-		catch (Exception ex)
-		{
-			DiagnosticsLog.Warn($"[secbox] welcome: open settings failed: {ex.Message}");
 		}
 	}
 
