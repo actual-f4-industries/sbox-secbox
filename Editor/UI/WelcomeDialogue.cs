@@ -247,7 +247,7 @@ public sealed class WelcomeDialogue : BaseWindow
 
 	static Pixmap TryLoadLogo()
 	{
-		var root = ResolveSecboxLibraryRoot();
+		var root = PackageLocator.CurrentSecboxLibraryRoot();
 		if (string.IsNullOrEmpty(root))
 		{
 			DiagnosticsLog.Warn("[secbox] welcome: could not resolve secbox library root — banner skipped");
@@ -276,36 +276,6 @@ public sealed class WelcomeDialogue : BaseWindow
 			DiagnosticsLog.Warn($"[secbox] welcome: Pixmap.FromFile threw: {ex.Message}");
 			return null;
 		}
-	}
-
-	// Enumerate LibrarySystem.All and pick the project whose RootDirectory
-	// contains secbox.sbproj. Content-based — survives the engine's
-	// "{org}.{ident}#local" FullIdent format (Package.Static.cs:FormatIdent).
-	// Assembly.Location is unreliable here: s&box compiles editor adapters
-	// in-memory, so the resulting assembly has no file backing.
-	static string ResolveSecboxLibraryRoot()
-	{
-		try
-		{
-			var libs = LibrarySystem.All;
-			if (libs == null) return null;
-
-			foreach (var lib in libs)
-			{
-				string root = null;
-				try { root = lib?.Project?.RootDirectory?.FullName; }
-				catch { }
-
-				if (!string.IsNullOrEmpty(root) && File.Exists(Path.Combine(root, "secbox.sbproj")))
-					return root;
-			}
-		}
-		catch (Exception ex)
-		{
-			DiagnosticsLog.Warn($"[secbox] welcome: LibrarySystem enumeration threw: {ex.Message}");
-		}
-
-		return null;
 	}
 
 	// Letterboxes a square logo into whatever rect the layout assigns. The
