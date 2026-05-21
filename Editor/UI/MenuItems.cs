@@ -164,47 +164,36 @@ public static class MenuItems
 		}
 	}
 
-	[Menu( "Editor", "secbox/Scan All Libraries Now" )]
-	public static void ScanAll()
+	[Menu( "Editor", "secbox/Scan now" )]
+	public static void ScanNow()
 	{
 		global::Sandbox.Internal.GlobalGameNamespace.Log.Info(
 			"[secbox] manual scan triggered" );
-		BootAudit.Run();
-		ShowUnreviewedSummary();
-	}
 
-	// Not a menu item - invoked by ScanAll to summarise results after a scan.
-	public static void ShowUnreviewedSummary()
-	{
 		var root = PackageLocator.CurrentProjectRoot();
 		if ( string.IsNullOrEmpty( root ) )
 		{
-			EditorUtility.DisplayDialog( "secbox", "No current project - open a project first." );
+			EditorUtility.DisplayDialog( "secbox", "No current project. Open a project first." );
 			return;
 		}
 
-		var store = TrustStore.Load( root );
-		var unreviewed = store.Entries
-			.Where( e => e.Decision == Decision.NotReviewed )
-			.OrderByDescending( e => e.CriticalCount + e.HighCount )
-			.ToList();
-
-		if ( unreviewed.Count == 0 )
+		// Open the results window in its scanning state, then run the scan off the
+		// UI thread (ScanFolder / EnsureReadyAsync block internally and would
+		// deadlock here) and feed results back on the main thread.
+		var window = ScanResultsWindow.OpenScanning();
+		System.Threading.Tasks.Task.Run( () =>
 		{
-			EditorUtility.DisplayDialog( "secbox",
-				$"No unreviewed packages.\n\nTrust store: {store.Entries.Count} entries.\nLocation: {store.FilePath}" );
-			return;
-		}
-
-		var lines = unreviewed
-			.Take( 20 )
-			.Select( e => $"  {e.PackageIdent}: Crit={e.CriticalCount} High={e.HighCount} Med={e.MediumCount} Low={e.LowCount}" );
-
-		var body = $"{unreviewed.Count} unreviewed package(s):\n\n"
-			+ string.Join( "\n", lines )
-			+ "\n\nOpen .secbox/trust.json for details, or run a fresh scan with secbox > Scan All Libraries Now.";
-
-		EditorUtility.DisplayDialog( "secbox: pending reviews", body );
+			try
+			{
+				var results = BootAudit.ScanAllLibraries();
+				MainThread.Queue( () => { try { window.SetResults( results ); } catch { } } );
+			}
+			catch ( System.Exception ex )
+			{
+				DiagnosticsLog.Error( "[secbox] manual scan failed", ex );
+				MainThread.Queue( () => { try { window.SetResults( null ); } catch { } } );
+			}
+		} );
 	}
 
 	// ============================================================

@@ -163,18 +163,25 @@ public sealed class WelcomeDialogue : BaseWindow
 		if (_scanRunning) return;
 		_scanRunning = true;
 		_btnScan.Enabled = false;
-		_scanStatus.Text = "Scanning…";
+		_scanStatus.Text = "Scanning...";
+
+		// Open the same per-library results window the "Scan now" menu uses, then
+		// run the scan off the UI thread and feed results back on the main thread.
+		var window = ScanResultsWindow.OpenScanning();
 
 		Task.Run(() =>
 		{
 			try
 			{
-				BootAudit.Run();
+				var results = BootAudit.ScanAllLibraries();
 				MainThread.Queue(() =>
 				{
 					try
 					{
-						_scanStatus.Text = "Scan complete. See Library Manager for results.";
+						window.SetResults(results);
+						_scanStatus.Text = results == null
+							? "Scan could not run. See the diagnostics log."
+							: $"Scan complete. {results.Count} library(ies) scanned.";
 						_btnScan.Enabled = true;
 					}
 					catch { }
@@ -188,6 +195,7 @@ public sealed class WelcomeDialogue : BaseWindow
 				{
 					try
 					{
+						window.SetResults(null);
 						_scanStatus.Text = $"Scan failed: {ex.Message}";
 						_btnScan.Enabled = true;
 					}

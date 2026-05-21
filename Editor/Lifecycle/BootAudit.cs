@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Editor;
@@ -29,6 +30,138 @@ public static class BootAudit
 		try { RunImpl(); }
 		catch (Exception ex) { DiagnosticsLog.Error("boot audit threw", ex); }
 		DiagnosticsLog.Trace("BootAudit.Run: end");
+	}
+
+	// Manual "Scan now" path. Unlike RunImpl this ignores the ScanOnBoot policy
+	// (the user asked for it explicitly) and scans every in-scope library
+	// regardless of an existing decision, so the results dialog can show findings
+	// for all of them - including ones already trusted or blocked. Trust entries
+	// are refreshed (counts + ReviewedAt) but existing decisions are preserved.
+	public static List<LibraryScanResult> ScanAllLibraries()
+	{
+		var results = new List<LibraryScanResult>();
+
+		var projectRoot = PackageLocator.CurrentProjectRoot();
+		if (string.IsNullOrEmpty(projectRoot))
+		{
+			DiagnosticsLog.Warn("manual scan: no current project - abort");
+			return results;
+		}
+
+		var store = TrustStore.Load(projectRoot);
+
+		var libraries = LibrarySystem.All?.ToList();
+		if (libraries == null || libraries.Count == 0)
+		{
+			DiagnosticsLog.Info("manual scan: no libraries to scan");
+			return results;
+		}
+
+		try
+		{
+			Task.Run(() => SecboxCoreClient.EnsureReadyAsync()).GetAwaiter().GetResult();
+		}
+		catch (Exception ex)
+		{
+			DiagnosticsLog.Error("manual scan: core load failed - abort", ex);
+			return results;
+		}
+
+		// Only scan paths under the open project's Libraries/ folder.
+		var librariesRoot = System.IO.Path.GetFullPath(System.IO.Path.Combine(projectRoot, "Libraries"))
+			.TrimEnd(System.IO.Path.DirectorySeparatorChar)
+			+ System.IO.Path.DirectorySeparatorChar;
+
+		bool anyFlagged = false;
+
+		foreach (var lib in libraries)
+		{
+			string ident = null;
+			string libRootPath = null;
+			try
+			{
+				var proj = lib?.Project;
+				ident = proj?.Package?.FullIdent ?? proj?.Package?.Ident;
+				libRootPath = proj?.RootDirectory?.FullName;
+			}
+			catch (Exception ex)
+			{
+				DiagnosticsLog.Warn($"manual scan: failed to introspect library: {ex.Message}");
+				continue;
+			}
+
+			if (string.IsNullOrEmpty(ident)) continue;
+
+			// Skip secbox itself (sbproj presence is ground truth, see RunImpl).
+			if (!string.IsNullOrEmpty(libRootPath)
+			    && System.IO.File.Exists(System.IO.Path.Combine(libRootPath, "secbox.sbproj")))
+				continue;
+
+			if (string.IsNullOrEmpty(libRootPath) || !System.IO.Directory.Exists(libRootPath)) continue;
+
+			var fullLibPath = System.IO.Path.GetFullPath(libRootPath);
+			if (!fullLibPath.StartsWith(librariesRoot, StringComparison.OrdinalIgnoreCase)) continue;
+
+			var hash = PackageHasher.HashFolder(libRootPath);
+			var existing = store.Find(hash);
+
+			var result = new LibraryScanResult
+			{
+				PackageIdent = ident,
+				Folder = libRootPath,
+				ContentHash = hash,
+				Decision = existing?.Decision ?? Decision.NotReviewed,
+			};
+
+			DiagnosticsLog.Info($"manual scan: scanning {ident} at {libRootPath}");
+
+			try
+			{
+				var report = Task.Run(() => SecboxCoreClient.ScanFolder(libRootPath)).GetAwaiter().GetResult();
+				result.Findings = report.Findings ?? new List<Finding>();
+			}
+			catch (Exception ex)
+			{
+				result.Error = ex.Message;
+				DiagnosticsLog.Warn($"manual scan: scan of {ident} failed: {ex.Message}");
+				results.Add(result);
+				continue;
+			}
+
+			result.CriticalCount = result.Findings.Count(f => f.Severity == Severity.Critical);
+			result.HighCount = result.Findings.Count(f => f.Severity == Severity.High);
+			result.MediumCount = result.Findings.Count(f => f.Severity == Severity.Medium);
+			result.LowCount = result.Findings.Count(f => f.Severity == Severity.Low);
+
+			DiagnosticsLog.Info($"manual scan: {ident}: Critical={result.CriticalCount} High={result.HighCount} Medium={result.MediumCount} Low={result.LowCount}");
+
+			var maxSeverity = result.Findings.Count == 0 ? Severity.Info : result.Findings.Max(f => f.Severity);
+			if (maxSeverity >= store.Policy.PromptThreshold)
+			{
+				store.Upsert(new TrustEntry
+				{
+					PackageIdent = ident,
+					Version = existing?.Version,
+					ContentHash = hash,
+					Decision = existing?.Decision ?? Decision.NotReviewed,
+					ReviewedAt = DateTime.UtcNow,
+					CriticalCount = result.CriticalCount,
+					HighCount = result.HighCount,
+					MediumCount = result.MediumCount,
+					LowCount = result.LowCount,
+					Notes = "Manual scan. First 5 findings:\n"
+						+ string.Join("\n", result.Findings.Take(5).Select(f => "  " + f)),
+				});
+				anyFlagged = true;
+			}
+
+			results.Add(result);
+		}
+
+		if (anyFlagged) store.Save();
+
+		DiagnosticsLog.Info($"manual scan done: {results.Count} library result(s)");
+		return results;
 	}
 
 	static void RunImpl()
