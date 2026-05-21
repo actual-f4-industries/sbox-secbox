@@ -59,8 +59,9 @@ public sealed class SecboxConfig
 
 	// Welcome dialogue — when true, suppress the first-install welcome
 	// across every project this user opens. Set by the "don't show again"
-	// checkbox in the welcome dialogue. Per-project suppression is handled
-	// separately by a marker file at <projectRoot>/.secbox/welcome-shown.
+	// checkbox in the welcome dialogue. Per-install suppression is handled
+	// separately by a marker file at <libraryRoot>/.welcome-shown, which
+	// vanishes automatically when the user uninstalls the library.
 	public bool WelcomeDialogueDismissedGlobally { get; set; } = false;
 
 	public static string FilePath =>

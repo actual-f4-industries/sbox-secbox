@@ -70,4 +70,31 @@ internal static class PackageLocator
 		try { return Project.Current?.RootDirectory?.FullName; }
 		catch { return null; }
 	}
+
+	// Locate our own library's on-disk folder by scanning LibrarySystem.All
+	// for the one whose root contains secbox.sbproj. Content-based —
+	// survives the engine's "{org}.{ident}#local" FullIdent format and any
+	// renames. Assembly.Location is unusable here because the editor
+	// compiles adapter assemblies in-memory.
+	public static string CurrentSecboxLibraryRoot()
+	{
+		try
+		{
+			var libs = LibrarySystem.All;
+			if (libs == null) return null;
+
+			foreach (var lib in libs)
+			{
+				string root = null;
+				try { root = lib?.Project?.RootDirectory?.FullName; }
+				catch { }
+
+				if (!string.IsNullOrEmpty(root) && File.Exists(Path.Combine(root, "secbox.sbproj")))
+					return root;
+			}
+		}
+		catch { }
+
+		return null;
+	}
 }

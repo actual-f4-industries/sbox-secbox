@@ -7,18 +7,22 @@ using Sandbox.SecBox.UI;
 namespace Sandbox.SecBox.Lifecycle;
 
 // Decides whether to show the post-install welcome and fires it exactly once
-// per editor session. Frame-driven so we can self-heal — we wait until
-// Project.Current is loaded before showing (editor.created isn't a reliable
-// "project is ready" signal). Same throttle / latch pattern as
+// per editor session. Frame-driven so we can self-heal — we wait until our
+// library is loaded before showing. Same throttle / latch pattern as
 // LibraryManagerInjector.
 //
 // Show rules:
 //   - Suppressed entirely if SecboxConfig.WelcomeDialogueDismissedGlobally.
-//   - Suppressed for projects where <root>/.secbox/welcome-shown exists.
+//   - Suppressed when <libraryRoot>/.welcome-shown exists.
 //   - Otherwise show once. Marker is written on every close path.
+//
+// Marker lives inside the library folder so it auto-vanishes when the
+// user uninstalls via the Library Manager — the engine deletes the whole
+// folder, marker dies with it, reinstall shows the welcome again. No
+// uninstall-detection logic needed.
 public static class WelcomeDialogueTrigger
 {
-	const string MarkerFileName = "welcome-shown";
+	const string MarkerFileName = ".welcome-shown";
 
 	static bool _decided;
 	static int _frameCounter;
@@ -53,8 +57,8 @@ public static class WelcomeDialogueTrigger
 		{
 			try
 			{
-				var root = PackageLocator.CurrentProjectRoot();
-				var markerPath = string.IsNullOrEmpty( root ) ? null : MarkerPathFor( root );
+				var libRoot = PackageLocator.CurrentSecboxLibraryRoot();
+				var markerPath = string.IsNullOrEmpty( libRoot ) ? null : MarkerPathFor( libRoot );
 				ShowDialog( markerPath, isManualInvocation );
 			}
 			catch ( Exception ex )
@@ -66,10 +70,10 @@ public static class WelcomeDialogueTrigger
 
 	static void DecideAndMaybeShow()
 	{
-		// Bail cheap if no project is loaded yet — avoids re-reading config
-		// every tick while the user sits on the project picker.
-		var projectRoot = PackageLocator.CurrentProjectRoot();
-		if ( string.IsNullOrEmpty( projectRoot ) )
+		// Bail cheap if our library isn't enumerable yet — avoids re-reading
+		// config every tick during editor warm-up.
+		var libRoot = PackageLocator.CurrentSecboxLibraryRoot();
+		if ( string.IsNullOrEmpty( libRoot ) )
 			return;
 
 		var cfg = SecboxConfig.Load();
@@ -80,11 +84,11 @@ public static class WelcomeDialogueTrigger
 			return;
 		}
 
-		var markerPath = MarkerPathFor( projectRoot );
+		var markerPath = MarkerPathFor( libRoot );
 		if ( MarkerExists( markerPath ) )
 		{
 			_decided = true;
-			DiagnosticsLog.Trace( $"[secbox] welcome: already shown for {projectRoot}" );
+			DiagnosticsLog.Trace( $"[secbox] welcome: already shown for {libRoot}" );
 			return;
 		}
 
@@ -129,8 +133,8 @@ public static class WelcomeDialogueTrigger
 		} );
 	}
 
-	static string MarkerPathFor( string projectRoot )
-		=> Path.Combine( projectRoot, ".secbox", MarkerFileName );
+	static string MarkerPathFor( string libraryRoot )
+		=> Path.Combine( libraryRoot, MarkerFileName );
 
 	static bool MarkerExists( string markerPath )
 	{
@@ -140,19 +144,12 @@ public static class WelcomeDialogueTrigger
 
 	static void WriteMarker( string markerPath )
 	{
-		try
-		{
-			var dir = Path.GetDirectoryName( markerPath );
-			if ( !string.IsNullOrEmpty( dir ) )
-				Directory.CreateDirectory( dir );
-			File.WriteAllText( markerPath, string.Empty );
-		}
+		try { File.WriteAllText( markerPath, string.Empty ); }
 		catch ( Exception ex )
 		{
 			DiagnosticsLog.Warn( $"[secbox] welcome: failed to write marker at {markerPath}: {ex.Message}" );
-			// _decided is already true; we won't loop. Next session this
-			// project may show the welcome again — acceptable for
-			// unwritable roots.
+			// _decided is already true; we won't loop. Welcome may reappear
+			// next session if the library root is unwritable — acceptable.
 		}
 	}
 }
