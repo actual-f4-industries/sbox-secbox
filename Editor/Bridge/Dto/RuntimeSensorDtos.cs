@@ -9,13 +9,11 @@ namespace Sandbox.SecBox.Bridge.Dto;
 
 public sealed class RuntimeSensorOptions
 {
-	public bool EnableProfiler { get; set; } = true;
-	public bool EnableEtw { get; set; } = false;
+	// Tier E only — the managed-call enforcement hook. Detection tiers were
+	// removed. Core ignores any extra/legacy fields on deserialize.
 	public bool EnableManagedHook { get; set; } = true;
 	// Bitmask, mirrors Secbox.Core.RuntimeSensors.SensorCapabilities.
-	public int DesiredCapabilities { get; set; } = 0x7E; // managed+dyn+file+proc+net+nativeimg
-	public bool CaptureStack { get; set; } = false;
-	public List<string> PathAllowlist { get; set; }
+	public int DesiredCapabilities { get; set; } = 0x1; // ManagedCalls
 	public EnforcementPolicyDto Enforcement { get; set; }
 }
 

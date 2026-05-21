@@ -202,42 +202,14 @@ public static class MenuItems
 	}
 
 	// ============================================================
-	// Runtime monitoring (Tier B profiler + opt-in Tier A Sentinel)
+	// Runtime monitoring (Tier E managed-call enforcement)
 	// ============================================================
-
-	[Menu( "Editor", "secbox/Runtime Monitoring/Settings..." )]
-	public static void OpenSentinelSettings()
-	{
-		try
-		{
-			new SentinelSettingsDialog().Show();
-		}
-		catch ( System.Exception ex )
-		{
-			EditorUtility.DisplayDialog( "secbox", $"Could not open settings: {ex.Message}" );
-		}
-	}
-
-	[Menu( "Editor", "secbox/Runtime Monitoring/Install Sentinel..." )]
-	public static void InstallSentinel()
-	{
-		try
-		{
-			new SentinelInstallDialog().Show();
-		}
-		catch ( System.Exception ex )
-		{
-			EditorUtility.DisplayDialog( "secbox", $"Could not open installer dialog: {ex.Message}" );
-		}
-	}
 
 	[Menu( "Editor", "secbox/Runtime Monitoring/Show Status" )]
 	public static void ShowRuntimeMonitorStatus()
 	{
 		var cfg = SecboxConfig.Load();
 		var attached = Lifecycle.RuntimeMonitorCoordinator.IsAttached;
-		var sentinelInstalled = Lifecycle.SentinelInstaller.IsServiceInstalled();
-		var sentinelRunning = sentinelInstalled && Lifecycle.SentinelInstaller.IsServiceRunning();
 
 		string sensors = "(not attached)";
 		if ( attached )
@@ -253,9 +225,8 @@ public static class MenuItems
 
 		var lines = new[]
 		{
-			$"Tier B (profiler): {(cfg.RuntimeMonitoringEnabled ? "enabled" : "disabled")}",
-			$"Tier A (Sentinel): {(cfg.SentinelEnabled ? "enabled in config" : "disabled in config")}",
-			$"Sentinel service:  {(sentinelInstalled ? (sentinelRunning ? "installed & running" : "installed, stopped") : "NOT installed")}",
+			$"Runtime enforcement (Tier E): {(cfg.RuntimeMonitoringEnabled ? "enabled" : "disabled")}",
+			$"Block library Process.Start:  {cfg.BlockLibraryProcessStart}",
 			$"Attached:          {attached}",
 			$"Recent findings:   {Lifecycle.RuntimeMonitorCoordinator.RecentCount}",
 			"",
@@ -278,31 +249,6 @@ public static class MenuItems
 	{
 		Lifecycle.RuntimeMonitorCoordinator.Detach();
 		EditorUtility.DisplayDialog( "secbox", "Runtime sensors detached." );
-	}
-
-	[Menu( "Editor", "secbox/Runtime Monitoring/Open Sentinel Event Log" )]
-	public static void OpenSentinelEventLog()
-	{
-		var path = Bridge.SentinelEventLog.FilePath;
-		if ( !System.IO.File.Exists( path ) )
-		{
-			EditorUtility.DisplayDialog( "secbox",
-				$"Sentinel event log does not exist yet:\n{path}\n\n"
-				+ "Enable Sentinel via Runtime Monitoring > Settings… and let it capture some events first." );
-			return;
-		}
-		try
-		{
-			System.Diagnostics.Process.Start( new System.Diagnostics.ProcessStartInfo
-			{
-				FileName = path,
-				UseShellExecute = true,
-			} );
-		}
-		catch ( System.Exception ex )
-		{
-			EditorUtility.DisplayDialog( "secbox", $"Could not open: {ex.Message}\n\nPath: {path}" );
-		}
 	}
 
 	[Menu( "Editor", "secbox/Open Trust Store File" )]

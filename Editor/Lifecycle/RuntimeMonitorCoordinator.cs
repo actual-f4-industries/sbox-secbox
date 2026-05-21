@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Sandbox.SecBox.Bridge;
@@ -9,30 +8,29 @@ using DiagnosticsLog = Sandbox.SecBox.Bridge.DiagnosticsLog;
 
 namespace Sandbox.SecBox.Lifecycle;
 
-// Orchestrates Tier B (profiler) and optionally Tier A (Sentinel). Wires
-// the event sink to DiagnosticsLog + a tiny in-memory ring that the
-// SentinelSettingsDialog reads for live preview.
+// Orchestrates Tier E — the in-editor managed-call enforcement hook. Wires the
+// event sink to DiagnosticsLog + a small in-memory ring the status panel reads
+// for live preview.
+//
+// Detection tiers were removed: Tier A (Sentinel ETW service + MSI) and Tier B
+// (native CLR profiler) are gone. The only sensor is the Harmony hook, which
+// suspends the calling thread and shows its OWN blocking decision dialog
+// in-process — so the adapter never spawns an AlertUI itself anymore.
 //
 // Lifecycle:
-//   * EnsureAttachedAsync — idempotent, called after SecboxCoreClient is
-//     ready (boot path).
-//   * UpdateSettings — call when the user toggles Sentinel on/off in the
-//     dialog. Detaches and re-attaches with the new options.
-//   * DetachAsync — call on shutdown / dev-mode reload.
+//   * EnsureAttached — idempotent, called after SecboxCoreClient is ready (boot).
+//   * ReapplySettings — call when the user toggles enforcement; detach + reattach.
+//   * Detach — call on shutdown / dev-mode reload.
 public static class RuntimeMonitorCoordinator
 {
 	// Locks are split so the event hot path doesn't share a lock with the
-	// attach lifecycle or with reader queries — Sentinel can push hundreds
-	// of events per second and the UI thread must never block on that.
+	// attach lifecycle or with reader queries.
 	//
 	//  _attachLock — serialises Attach/Detach/Reapply. Cold path.
 	//  _writeLock  — protects the _recent queue. Held briefly during enqueue
 	//                + snapshot publish. Held ONLY by event-receiver threads.
 	//  _snapshot   — volatile reference, atomic publish on each event.
 	//                Readers never take any lock; just read the field.
-	//                Eliminates the deadlock that hits when the UI thread
-	//                tries to acquire a contended lock and sbox's
-	//                ExpirableSynchronizationContext pumps re-entrant calls.
 	static readonly object _attachLock = new();
 	static readonly object _writeLock = new();
 	static bool _attached;
@@ -80,14 +78,11 @@ public static class RuntimeMonitorCoordinator
 			if (_attached) return;
 			try
 			{
+				// Tier E only. Enforcement is gated by BlockLibraryProcessStart;
+				// the hook handles the suspend dialog in-process.
 				var opts = new RuntimeSensorOptions
 				{
-					EnableProfiler = true,
-					EnableEtw = cfg.SentinelEnabled,
 					EnableManagedHook = true,
-					CaptureStack = cfg.CaptureStackOnKernelEvents,
-					PathAllowlist = cfg.SentinelPathAllowlist?.Count > 0
-						? cfg.SentinelPathAllowlist : null,
 					Enforcement = new EnforcementPolicyDto
 					{
 						BlockLibraryProcessStart = cfg.BlockLibraryProcessStart,
@@ -106,9 +101,7 @@ public static class RuntimeMonitorCoordinator
 				{
 					// Surface BOTH the message and every sensor's status so
 					// state-mismatch bugs (adapter says detached / Core says
-					// already attached, etc.) are visible without having to
-					// add ad-hoc traces. Sensors list is non-empty whenever
-					// Core has a leftover registry from a partial attach.
+					// already attached, etc.) are visible without ad-hoc traces.
 					var sensorDump = result.Sensors == null || result.Sensors.Count == 0
 						? "(none)"
 						: string.Join(", ", result.Sensors.Select(s =>
@@ -143,8 +136,8 @@ public static class RuntimeMonitorCoordinator
 
 	public static void ReapplySettings()
 	{
-		// Detach + re-attach so changed flags (Sentinel on/off, allowlist,
-		// capture-stack) take effect. EnsureAttached re-reads config.
+		// Detach + re-attach so a changed BlockLibraryProcessStart flag takes
+		// effect. EnsureAttached re-reads config.
 		Detach();
 		EnsureAttached();
 	}
@@ -161,11 +154,9 @@ public static class RuntimeMonitorCoordinator
 		}
 		if (f == null) return;
 
-		// Hot path. _writeLock is the SHORT critical section — never held
-		// for any other purpose, so the UI thread cannot block on it via
-		// any reader (RecentFindings reads the volatile snapshot lock-free).
-		// Snapshot is republished on every enqueue; readers always see a
-		// consistent array, no half-updated queue.
+		// Hot path. _writeLock is the SHORT critical section — never held for
+		// any other purpose, so the UI thread cannot block on it via any reader
+		// (RecentFindings reads the volatile snapshot lock-free).
 		lock (_writeLock)
 		{
 			_recent.Enqueue(f);
@@ -175,28 +166,8 @@ public static class RuntimeMonitorCoordinator
 
 		try { FindingReceived?.Invoke(f); } catch { }
 
-		// Dedicated audit log for Sentinel kernel events — one line per event,
-		// separate from the general secbox.log so the kernel audit trail is
-		// trivial to grep / tail / ship to a SIEM. Profiler-only events stay
-		// in secbox.log to avoid bloating the audit file with managed noise.
-		var sensorIds = f.SensorIds == null ? "(null)" :
-			f.SensorIds.Count == 0 ? "(empty)" : string.Join(",", f.SensorIds);
-		var hasEtw = f.SensorIds != null && f.SensorIds.Contains("etw");
-		DiagnosticsLog.Trace($"sentinel-log-route: sensorIds=[{sensorIds}] hasEtw={hasEtw} kind={f.Kind}");
-		if (hasEtw)
-		{
-			try
-			{
-				SentinelEventLog.Write(f);
-				DiagnosticsLog.Trace($"sentinel-log-route: wrote to {SentinelEventLog.FilePath}");
-			}
-			catch (Exception ex)
-			{
-				DiagnosticsLog.Warn($"sentinel-log-route: write failed: {ex.GetType().Name}: {ex.Message}");
-			}
-		}
-
-		// Severity-based logging — Critical → Error log, others → Info.
+		// Record only — the Tier E hook shows its own blocking decision dialog
+		// in-process, so the adapter does not spawn any UI here.
 		var line = $"[{f.Severity}] {f.Kind} @ {f.Target ?? "(no target)"} "
 			+ (string.IsNullOrEmpty(f.CallerAssembly) ? "" : $"by {f.CallerAssembly}::{f.CallerMethod} ")
 			+ $"[{string.Join(",", f.SensorIds ?? new List<string>())}]";
@@ -207,133 +178,5 @@ public static class RuntimeMonitorCoordinator
 			DiagnosticsLog.Warn("runtime: " + line);
 		else
 			DiagnosticsLog.Trace("runtime: " + line);
-
-		// Every Critical finding pops the WPF alert dialog. Two paths
-		// converge on the same drop folder; whichever spawns first reads
-		// + deletes the JSON file, the other becomes a no-op.
-		//
-		//   Path 1 (service):  drop file → AlertSpawner FileSystemWatcher →
-		//                       CreateProcessAsUser → SecboxAlertUI.exe in
-		//                       the user's session. Bulletproof against
-		//                       editor freezes.
-		//   Path 2 (no svc):   drop file → adapter Process.Starts
-		//                       SecboxAlertUI.exe directly. Fallback when
-		//                       service isn't installed.
-		//
-		// Prior gating was wrong: it only fired when Tier E had blocked,
-		// so kernel-only Critical findings (ETW ProcessStart of an editor
-		// descendant, with Tier E's CallAttributionRing entry missed
-		// because ETW reported tid=-1) never produced a dialog. Now we
-		// always drop on Critical; service or adapter spawns.
-		if (isCritical)
-		{
-			try
-			{
-				var conf = SecboxConfig.Load();
-				if (conf.ShowDetectionDialog)
-				{
-					TryDropAlertPayload(f);
-					if (!conf.SentinelEnabled) TrySpawnAlertUI(f);
-				}
-			}
-			catch (Exception ex)
-			{
-				DiagnosticsLog.Warn($"detection dialog dispatch failed: {ex.Message}");
-			}
-		}
-	}
-
-	// Drop folder shared by service AlertSpawner + adapter direct-spawn.
-	static string AlertDropDir => Path.Combine(
-		Environment.GetFolderPath(Environment.SpecialFolder.CommonApplicationData),
-		"secbox", "alerts");
-
-	// Write the alert JSON into the watched drop folder. Atomic rename
-	// (.tmp → .json) so the service's FileSystemWatcher never sees a
-	// partially-written file. Returns the final path on success, null
-	// on any failure (swallowed — audit log already has the finding).
-	static string TryDropAlertPayload(RuntimeFinding f)
-	{
-		try
-		{
-			Directory.CreateDirectory(AlertDropDir);
-			var name = $"editor-{DateTime.UtcNow:yyyyMMddTHHmmssfff}-{Guid.NewGuid():N}.json";
-			var tmp = Path.Combine(AlertDropDir, name + ".tmp");
-			var final = Path.Combine(AlertDropDir, name);
-
-			var payload = System.Text.Json.JsonSerializer.Serialize(new
-			{
-				severity = f.Severity,
-				kind = f.Kind,
-				target = f.Target,
-				callerAssembly = f.CallerAssembly,
-				callerMethod = f.CallerMethod,
-				timestamp = f.Timestamp,
-				pid = f.Pid,
-				action = string.Equals(f.Kind, "BlockedManagedProcessStart", StringComparison.Ordinal)
-					? "Blocked" : "Detected",
-				note = f.Note,
-			});
-			File.WriteAllText(tmp, payload);
-			File.Move(tmp, final);
-			return final;
-		}
-		catch (Exception ex)
-		{
-			DiagnosticsLog.Warn($"alert payload drop failed: {ex.GetType().Name}: {ex.Message}");
-			return null;
-		}
-	}
-
-	// Adapter-direct spawn path — used when Sentinel service isn't enabled
-	// (no AlertSpawner watching). Drops the JSON via TryDropAlertPayload,
-	// then Process.Starts SecboxAlertUI.exe directly. Best-effort: any
-	// failure (exe missing, .NET Desktop Runtime missing) is swallowed.
-	static void TrySpawnAlertUI(RuntimeFinding f)
-	{
-		try
-		{
-			var exe = TryFindAlertUiExe();
-			if (string.IsNullOrEmpty(exe))
-			{
-				DiagnosticsLog.Trace("SecboxAlertUI.exe not found in core cache; alert dialog skipped");
-				return;
-			}
-
-			var payloadPath = TryDropAlertPayload(f);
-			if (string.IsNullOrEmpty(payloadPath)) return;
-
-			var psi = new System.Diagnostics.ProcessStartInfo
-			{
-				FileName = exe,
-				UseShellExecute = false,
-				CreateNoWindow = false,
-				WorkingDirectory = Path.GetDirectoryName(exe),
-			};
-			psi.ArgumentList.Add(payloadPath);
-			System.Diagnostics.Process.Start(psi);
-		}
-		catch (Exception ex)
-		{
-			DiagnosticsLog.Warn($"SecboxAlertUI spawn failed: {ex.GetType().Name}: {ex.Message}");
-		}
-	}
-
-	static string TryFindAlertUiExe()
-	{
-		try
-		{
-			// AlertUI ships next to the other Core DLLs (downloaded and
-			// hash-verified by SecboxCoreLoader at startup). Resolve from
-			// the loaded Core.dll's directory so DevMode / production both
-			// work without separate path config.
-			var coreAsm = SecboxCoreLoader.CoreAssembly;
-			if (coreAsm == null) return null;
-			var dir = Path.GetDirectoryName(coreAsm.Location);
-			if (string.IsNullOrEmpty(dir)) return null;
-			var exe = Path.Combine(dir, "SecboxAlertUI.exe");
-			return File.Exists(exe) ? exe : null;
-		}
-		catch { return null; }
 	}
 }

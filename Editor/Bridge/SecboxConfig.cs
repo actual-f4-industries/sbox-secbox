@@ -38,22 +38,10 @@ public sealed class SecboxConfig
 	// "why did this throw silently" bug.
 	public bool VerboseDiagnostics { get; set; } = false;
 
-	// Runtime monitoring (Tier B profiler). On by default — installs no
-	// drivers, no services, just attaches the in-process CLR profiler that
-	// ships with Secbox.Core. Set false to disable entirely.
+	// Runtime monitoring (Tier E managed-call enforcement). On by default —
+	// installs no drivers, no services; just attaches the in-editor Harmony
+	// hook that intercepts library Process.Start. Set false to disable.
 	public bool RuntimeMonitoringEnabled { get; set; } = true;
-
-	// Optional Tier A (Sentinel kernel sidecar). Off by default — requires
-	// a one-time admin install. Toggle on via secbox menu > Sentinel.
-	public bool SentinelEnabled { get; set; } = false;
-
-	// Capture managed-stack on kernel events. Expensive — off by default.
-	public bool CaptureStackOnKernelEvents { get; set; } = false;
-
-	// Optional kernel-event path allowlist (Sentinel only). Glob syntax.
-	// If empty / null, all paths under the current project root forward.
-	public System.Collections.Generic.List<string> SentinelPathAllowlist { get; set; }
-		= new System.Collections.Generic.List<string>();
 
 	// Tier E enforcement — when a library-attributed Process.Start is
 	// detected, refuse to let it run. The Harmony prefix in ManagedCallSensor

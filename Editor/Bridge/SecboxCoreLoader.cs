@@ -58,6 +58,20 @@ public static class SecboxCoreLoader
 			{
 				var candidate = Path.Combine(folder, name.Name + ".dll");
 				DiagnosticsLog.Trace($"ALC.Resolving: {name.Name} → {(File.Exists(candidate) ? "found" : "missing")} ({candidate})");
+				// 0Harmony (+ bundled MonoMod) MUST be a SINGLE instance in the
+				// Default, non-collectible context. If this collectible ALC loads
+				// its own copy, Core binds to it while Harmony's MonoMod detours
+				// (emitted into Default) bind to a separate Default copy — the two
+				// type identities collide and every patch throws "CecilILGenerator
+				// … violates the constraint of TTarget" (0 methods patched). Hand
+				// 0Harmony/MonoMod to Default so Core + the detours share one copy.
+				var shared = name.Name ?? "";
+				bool toDefault = File.Exists(candidate) && (string.Equals(shared, "0Harmony", StringComparison.OrdinalIgnoreCase) || shared.StartsWith("MonoMod", StringComparison.OrdinalIgnoreCase));
+				if (toDefault)
+				{
+					DiagnosticsLog.Trace($"ALC.Resolving: {shared} → Default ALC (shared single-instance)");
+					return AssemblyLoadContext.Default.LoadFromAssemblyPath(candidate);
+				}
 				return File.Exists(candidate) ? ctx.LoadFromAssemblyPath(candidate) : null;
 			};
 
