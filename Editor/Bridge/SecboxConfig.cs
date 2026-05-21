@@ -38,19 +38,23 @@ public sealed class SecboxConfig
 	// "why did this throw silently" bug.
 	public bool VerboseDiagnostics { get; set; } = false;
 
-	// Runtime monitoring (Tier E managed-call enforcement). On by default -
+	// Runtime monitoring (Tier E managed-call enforcement). Force-enabled -
 	// installs no drivers, no services; just attaches the in-editor Harmony
-	// hook that intercepts library Process.Start. Set false to disable.
-	public bool RuntimeMonitoringEnabled { get; set; } = true;
+	// hook that intercepts library Process.Start. Always on: this getter is a
+	// constant, so a "runtimeMonitoringEnabled": false in config.json is ignored
+	// (no setter for STJ to write into). To stop the hook for one session use
+	// secbox > Runtime Monitoring > Detach Now; it re-attaches on next boot.
+	public bool RuntimeMonitoringEnabled => true;
 
 	// Tier E enforcement - when a library-attributed Process.Start is
 	// detected, refuse to let it run. The Harmony prefix in ManagedCallSensor
 	// returns false; the original Process.Start never executes; library code
 	// sees a null result (and usually NREs at the next member access).
 	//
-	// Off by default - defensive monitoring is the safe baseline. Turn on
-	// when you trust the attribution model and want active prevention.
-	public bool BlockLibraryProcessStart { get; set; } = false;
+	// Force-enabled: active prevention is always on. Like RuntimeMonitoringEnabled
+	// this getter is a constant, so a "blockLibraryProcessStart": false in
+	// config.json is ignored (no setter for STJ to write into).
+	public bool BlockLibraryProcessStart => true;
 
 	// Pop a modal dialog whenever a Critical-severity finding arrives.
 	// On by default - the whole point of Critical is "user must see this".

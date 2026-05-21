@@ -25,7 +25,7 @@ public static class CorePolicy
 	// SecboxCoreLoader builds {BaseUrl}/{CoreVersion}/{filename}, which
 	// resolves to GitHub's canonical release-asset URL:
 	//   https://github.com/<org>/<repo>/releases/download/<tag>/<filename>
-	public const string CoreVersion = "v0.1.0-dev";
+	public const string CoreVersion = "v0.1.0";
 
 	// GitHub Releases serve assets at
 	//   https://github.com/<org>/<repo>/releases/download/<tag>/<filename>
@@ -37,19 +37,19 @@ public static class CorePolicy
 	// Files the loader downloads in order. Hash pin for each.
 	public static readonly (string FileName, string Sha256)[] CoreFiles =
 	{
-		("Secbox.Core.dll",                        "4863e89012b98bb741e29712ab03149b09d69d44701e7eee503a7371356449d8"),
-		("Secbox.Contracts.dll",                   "efe25dcd9887f7ab9d5002056e3c2969b1ff2e1f7bb2e8e403915b8e56f8fb56"),
-		("Secbox.Rules.dll",                       "e9f2b0aabff8ea49a1a7bbee588121019fb37661051766d5dacb7d9dbeb4e260"),
-		("Secbox.Scanner.dll",                     "b9bdd2bb556bdba505c840bdcea4811f2adbc2627bdd90b73868d79a2eb08981"),
+		("Secbox.Core.dll",                        "94dc0573aa1e076d5436c5fb040acb560ccd378aadba25853b834a2eab734abd"),
+		("Secbox.Contracts.dll",                   "f9d6fdf4226a1fcc514461b65d7e2c372f8612fec5ba92a955800321447cf699"),
+		("Secbox.Rules.dll",                       "1182edbf45d2b1129e9f28bf87558e1b41cd7e3a28dda3c230c516493a118df4"),
+		("Secbox.Scanner.dll",                     "56db37557921c33da3108c1261ac8c39948ca94f12f5173b1edacda8d2bbc953"),
 		("Mono.Cecil.dll",                         "831dca77470d85cb6ffbea3072daa7a3df5b7c9fcfd9c3f43674a9be99d4bfcf"),
 		// Tier E (Harmony runtime patches) - ManagedCallSensor patches
 		// System.Diagnostics.Process.Start for library-attributed spawns.
-		("0Harmony.dll",                           "817b0127f0f512122a0e0f8cab1d89c6431f6533898e473bbecdc61846cf945c"),
+		("0Harmony.dll",                           "fd77b88724f4104440df0cf979a851d35eec75ea3a7e86297d04abe47c71aff6"),
 		// WPF decision dialog. The Tier E hook Process.Starts this exe
 		// in-process and blocks the calling thread on its exit code.
 		// Self-contained single-file: .NET 10 + WPF embedded (~62MB). Hash
 		// changes every release (runtime DLLs inside the bundle are stamped).
-		("SecboxAlertUI.exe",                      "5d935208c673b4568ba17924c4c684f3311fd70f6b2adc785a647260e64e9abc"),
+		("SecboxAlertUI.exe",                      "0429a035745e86268fe22e407630100bf9e2d63d4a9b49065e371232f5346ac3"),
 	};
 
 	public static string LocalCachePath =>

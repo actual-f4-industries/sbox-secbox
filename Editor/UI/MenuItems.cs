@@ -8,10 +8,16 @@ using Sandbox.SecBox.Lifecycle;
 namespace Sandbox.SecBox.UI;
 
 // Top-level menu entries under "secbox/" in the editor menu bar. Lets users
-// trigger scans, open the trust store, toggle dev mode, etc.
+// trigger scans, manage runtime monitoring, and access dev tooling.
 public static class MenuItems
 {
-	[Menu( "Editor", "secbox/Dev Mode/Toggle Dev Mode" )]
+	[Menu( "Editor", "secbox/Trusted Libraries..." )]
+	public static void OpenTrustManager()
+	{
+		TrustManagerWindow.Open();
+	}
+
+	[Menu( "Editor", "secbox/Dev/Toggle Dev Mode" )]
 	public static void ToggleDevMode()
 	{
 		bool wasActive = CorePolicy.DevModeActive;
@@ -39,7 +45,7 @@ public static class MenuItems
 		}
 	}
 
-	[Menu( "Editor", "secbox/Dev Mode/Show Status" )]
+	[Menu( "Editor", "secbox/Dev/Show Status" )]
 	public static void ShowDevModeStatus()
 	{
 		var active = CorePolicy.DevModeActive;
@@ -68,7 +74,7 @@ public static class MenuItems
 		EditorUtility.DisplayDialog("secbox dev-mode status", string.Join("\n", lines), icon: active ? "🛠️" : "🔒");
 	}
 
-	[Menu( "Editor", "secbox/Dev Mode/Open Config File" )]
+	[Menu( "Editor", "secbox/Dev/Open Config File" )]
 	public static void OpenConfigFile()
 	{
 		var path = SecboxConfig.FilePath;
@@ -91,7 +97,7 @@ public static class MenuItems
 		}
 	}
 
-	[Menu( "Editor", "secbox/Open Diagnostics Log" )]
+	[Menu( "Editor", "secbox/Dev/Open Diagnostics Log" )]
 	public static void OpenDiagnosticsLog()
 	{
 		var path = DiagnosticsLog.FilePath;
@@ -114,7 +120,7 @@ public static class MenuItems
 		}
 	}
 
-	[Menu( "Editor", "secbox/Open Diagnostics Log Folder" )]
+	[Menu( "Editor", "secbox/Dev/Open Diagnostics Log Folder" )]
 	public static void OpenDiagnosticsLogFolder()
 	{
 		var folder = System.IO.Path.GetDirectoryName(DiagnosticsLog.FilePath);
@@ -133,7 +139,7 @@ public static class MenuItems
 		}
 	}
 
-	[Menu( "Editor", "secbox/Dev Mode/Reload Core Now" )]
+	[Menu( "Editor", "secbox/Dev/Reload Core Now" )]
 	public static void ReloadCore()
 	{
 		var unloaded = SecboxCoreLoader.TryUnload();
@@ -167,7 +173,7 @@ public static class MenuItems
 		ShowUnreviewedSummary();
 	}
 
-	[Menu( "Editor", "secbox/Show Findings Not Reviewed..." )]
+	// Not a menu item - invoked by ScanAll to summarise results after a scan.
 	public static void ShowUnreviewedSummary()
 	{
 		var root = PackageLocator.CurrentProjectRoot();
@@ -250,69 +256,4 @@ public static class MenuItems
 		Lifecycle.RuntimeMonitorCoordinator.Detach();
 		EditorUtility.DisplayDialog( "secbox", "Runtime sensors detached." );
 	}
-
-	[Menu( "Editor", "secbox/Open Trust Store File" )]
-	public static void OpenTrustStore()
-	{
-		var root = PackageLocator.CurrentProjectRoot();
-		if ( string.IsNullOrEmpty( root ) )
-		{
-			EditorUtility.DisplayDialog( "secbox", "No current project." );
-			return;
-		}
-
-		var path = System.IO.Path.Combine( root, ".secbox", "trust.json" );
-		if ( !System.IO.File.Exists( path ) )
-		{
-			EditorUtility.DisplayDialog( "secbox", $"Trust store does not exist yet at:\n{path}\n\nInstall a library or run a scan to create it." );
-			return;
-		}
-
-		try
-		{
-			System.Diagnostics.Process.Start( new System.Diagnostics.ProcessStartInfo
-			{
-				FileName = path,
-				UseShellExecute = true,
-			} );
-		}
-		catch ( System.Exception ex )
-		{
-			EditorUtility.DisplayDialog( "secbox", $"Could not open: {ex.Message}\n\nPath: {path}" );
-		}
-	}
-	
-	[Menu( "Editor", "secbox/Open Source Code" )]
-	public static void OpenSourceCode()
-	{
-		// keep in sync with WelcomeDialogue.GitHubUrl
-		const string url = "https://github.com/actual-f4-industries/sbox-secbox";
-		try
-		{
-			System.Diagnostics.Process.Start( new System.Diagnostics.ProcessStartInfo
-			{
-				FileName = url,
-				UseShellExecute = true,
-			} );
-			EditorUtility.DisplayDialog( "secbox", $"Opened! Please find https://github.com/actual-f4-industries/sbox-secbox in your default browser." );
-		}
-		catch ( System.Exception ex )
-		{
-			EditorUtility.DisplayDialog( "secbox", $"Could not open source code:\n{ex.Message}\n\nURL: {url}" );
-		}
-	}
-
-	[Menu( "Editor", "secbox/Show Welcome..." )]
-	public static void ShowWelcome()
-	{
-		try
-		{
-			WelcomeDialogueTrigger.ShowNow( isManualInvocation: true );
-		}
-		catch ( System.Exception ex )
-		{
-			EditorUtility.DisplayDialog( "secbox", $"Could not open welcome: {ex.Message}" );
-		}
-	}
-
 }

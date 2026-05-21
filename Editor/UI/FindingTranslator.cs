@@ -14,7 +14,7 @@ public static class FindingTranslator
 	{
 		["native.unmanaged-dll"] = new(
 			"Ships a native Windows DLL",
-			"This package contains a native Windows library. The scanner cannot read machine code — once loaded, it can do anything on your machine."),
+			"This package contains a native Windows library. The scanner cannot read machine code - once loaded, it can do anything on your machine."),
 		["native.unix-shared-object"] = new(
 			"Ships a native Unix library",
 			"This package contains a Linux or macOS native library (.so / .dylib). The scanner cannot read machine code."),
@@ -24,7 +24,7 @@ public static class FindingTranslator
 
 		["source.suspect-using"] = new(
 			"Imports a risky namespace",
-			"A source file imports a namespace commonly used for risky operations. On its own this is just a hint — check what the code does with it."),
+			"A source file imports a namespace commonly used for risky operations. On its own this is just a hint - check what the code does with it."),
 		["source.critical-attr"] = new(
 			"Uses a dangerous attribute",
 			"A source file applies an attribute such as [DllImport] that signals a clear attack-style pattern."),
@@ -52,7 +52,7 @@ public static class FindingTranslator
 			"The compiled code embeds a string matching the name of a native API or shell command."),
 		["il.finalizer-trick"] = new(
 			"Finalizer-reference exploit",
-			"The compiled code references object finalizers indirectly via ldftn / ldvirtftn — a known .NET sandbox-escape technique."),
+			"The compiled code references object finalizers indirectly via ldftn / ldvirtftn - a known .NET sandbox-escape technique."),
 		["il.read-failed"] = new(
 			"Could not read an assembly",
 			"The scanner failed to load a compiled .dll for IL analysis."),
@@ -62,7 +62,7 @@ public static class FindingTranslator
 			"The compiled code declares a direct call into native code via P/Invoke. This is one of the strongest possible attack signals."),
 		["metadata.explicit-layout"] = new(
 			"Memory-aliasing type",
-			"The code defines a type with explicit memory layout. Often used to reinterpret bytes as another type — a building block for memory exploits."),
+			"The code defines a type with explicit memory layout. Often used to reinterpret bytes as another type - a building block for memory exploits."),
 		["metadata.read-failed"] = new(
 			"Could not read assembly metadata",
 			"The scanner could not parse the assembly's metadata tables."),

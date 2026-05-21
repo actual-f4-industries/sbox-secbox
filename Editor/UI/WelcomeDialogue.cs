@@ -21,7 +21,6 @@ public sealed class WelcomeDialogue : BaseWindow
 	const string CssBody   = "color: #e8eaee; font-size: 12px;";
 	const string CssSubtle = "color: #9aa0a6; font-size: 11px;";
 
-	// keep in sync with MenuItems.OpenSourceCode
 	const string GitHubUrl = "https://github.com/actual-f4-industries/sbox-secbox";
 
 	Label _scanStatus;
@@ -64,10 +63,10 @@ public sealed class WelcomeDialogue : BaseWindow
 
 		var col = Layout.AddColumn();
 		col.Spacing = 4;
-		var title = new Label("Welcome to SecBox");
+		var title = new Label("Welcome to Secbox");
 		title.SetStyles(CssH1);
 		col.Add(title);
-		var sub = new Label("SecBox is a defence-in-depth security layer for s&box editor projects. "
+		var sub = new Label("Secbox is a defence-in-depth security layer for s&box editor projects. "
 			+ "It scans every library you install for risky patterns, monitors runtime behaviour, "
 			+ "and gives you a clear yes/no decision before trusting third-party code.");
 		sub.SetStyles(CssSubtle);
@@ -78,7 +77,7 @@ public sealed class WelcomeDialogue : BaseWindow
 	void BuildWhatItDoes()
 	{
 		AddSection("What it does",
-			"On every editor boot, SecBox walks your project's Libraries/ folder and scans new or "
+			"On every editor boot, Secbox walks your project's Libraries/ folder and scans new or "
 			+ "modified packages. Findings are recorded in <projectRoot>/.secbox/trust.json. "
 			+ "Until you mark a package Trusted, runtime monitoring keeps an eye on what its code "
 			+ "actually does - file writes, network calls, process spawns.");
@@ -88,7 +87,7 @@ public sealed class WelcomeDialogue : BaseWindow
 	{
 		AddSection("How to use it",
 			"• Install a library as usual via Library Manager.\n"
-			+ "• SecBox runs a scan automatically and surfaces findings in the library row.\n"
+			+ "• Secbox runs a scan automatically and surfaces findings in the library row.\n"
 			+ "• Review findings, mark Trusted or Blocked from the dock.\n"
 			+ "• Optional: install the Sentinel sidecar for kernel-level visibility.");
 	}
