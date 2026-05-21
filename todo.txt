@@ -1,3 +1,7 @@
+todo:
+ - 0Harmony, 2 libraries from Roslyn, 4 libraries from CSOL, 4 libraries of our own (secbox-core, contract, rules, and scanner), and an alert binary dialogue downloads.
+ - Implement a proper asset finding and utilizing system for editor windows.
+
 Quality of Life:
  - Add Linux Notice Support for Sentinel.
  - Review Page.
