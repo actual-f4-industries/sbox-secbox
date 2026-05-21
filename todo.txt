@@ -6,6 +6,8 @@ Quality of Life:
  - Review Page.
 
 Bug Reports:
+ - Editor/UI/ConcernMapper.cs: keys the prefix map with critical.dynamicCode. and critical.rawNetwork., but the back-end rule IDs are critical.dynamic-code.NNN and critical.raw-network.NNN (hyphens, from CriticalPack.cs:21-23). Dynamic-code and raw-network findings currently fall into the "other" bucket in AllowAllDialog. Want me to fix it in the same change?
+
 
 Maybe Never Address:
  - The badges don't render.

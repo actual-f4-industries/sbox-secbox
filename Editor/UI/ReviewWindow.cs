@@ -6,9 +6,10 @@ using Sandbox.SecBox.Bridge.Dto;
 
 namespace Sandbox.SecBox.UI;
 
-// Custom Qt review window. Far prettier than EditorUtility.DisplayDialog -
-// color-coded severity chips, scrollable findings list with expandable
-// details, four explicit-action buttons.
+// Custom Qt review window. Two tabs:
+//  - Default: plain-language summary of concerns, Critical first. Uses
+//    FindingTranslator to convert RuleIds to short titles and explanations.
+//  - Advanced: the original per-finding card list (technical view).
 //
 // MUST be constructed on the editor main thread. Callers should wrap via
 // MainThread.Queue if they're on a thread-pool thread.
@@ -23,16 +24,21 @@ public sealed class ReviewWindow : BaseWindow
 	// Layout slots we rebuild when findings are merged in.
 	Layout _headerSlot;
 	Layout _chipsSlot;
-	ScrollArea _findingsScroll;
+	TabWidget _tabs;
+	ScrollArea _defaultScroll;
+	ScrollArea _advancedScroll;
 
-	const string CssCard       = "background-color: #2b2b2f; border-radius: 6px; padding: 8px 10px;";
-	const string CssRuleId     = "font-family: 'Consolas','Menlo',monospace; color: #c5cad1; font-size: 11px;";
-	const string CssMessage    = "color: #e8eaee; font-size: 13px;";
-	const string CssLocation   = "color: #9aa0a6; font-size: 11px; font-family: monospace;";
-	const string CssFixHint    = "color: #81c784; font-size: 11px;";
-	const string CssChipBase   = "color: white; padding: 3px 9px; border-radius: 10px; font-size: 11px; font-weight: 700;";
-	const string CssH1         = "font-size: 18px; font-weight: 700; color: #ffffff;";
-	const string CssSubtle     = "color: #9aa0a6; font-size: 11px;";
+	const string CssCard         = "background-color: #2b2b2f; border-radius: 6px; padding: 8px 10px;";
+	const string CssRuleId       = "font-family: 'Consolas','Menlo',monospace; color: #c5cad1; font-size: 11px;";
+	const string CssMessage      = "color: #e8eaee; font-size: 13px;";
+	const string CssLocation     = "color: #9aa0a6; font-size: 11px; font-family: monospace;";
+	const string CssFixHint      = "color: #81c784; font-size: 11px;";
+	const string CssChipBase     = "color: white; padding: 3px 9px; border-radius: 10px; font-size: 11px; font-weight: 700;";
+	const string CssH1           = "font-size: 18px; font-weight: 700; color: #ffffff;";
+	const string CssSubtle       = "color: #9aa0a6; font-size: 11px;";
+	const string CssDefaultTitle = "color: #ffffff; font-size: 14px; font-weight: 700;";
+	const string CssDefaultBody  = "color: #e8eaee; font-size: 12px;";
+	const string CssCountTag     = "color: #9aa0a6; font-size: 11px;";
 
 	public ReviewWindow(
 		string packageIdent,
@@ -56,7 +62,7 @@ public sealed class ReviewWindow : BaseWindow
 
 		_headerSlot = Layout.AddColumn();
 		_chipsSlot = Layout.AddRow();
-		BuildFindingsList(); // populates _findingsScroll
+		BuildTabs(); // populates _tabs, _defaultScroll, _advancedScroll
 		BuildFooter();
 
 		RebuildHeaderAndChips();
@@ -78,7 +84,7 @@ public sealed class ReviewWindow : BaseWindow
 
 	// Called by ReviewDialog when a follow-up scan of the same package fires.
 	// Merges new findings (by RuleId + Location) into the existing set,
-	// rebuilds the header/chips/list, and refreshes the title.
+	// rebuilds the header/chips/lists, and refreshes the title.
 	public void MergeFindings(string contentHash, IList<Finding> incoming)
 	{
 		if (incoming == null || incoming.Count == 0) return;
@@ -93,7 +99,7 @@ public sealed class ReviewWindow : BaseWindow
 		}
 
 		RebuildHeaderAndChips();
-		RebuildFindingsList();
+		RebuildFindingsLists();
 
 		try { Raise(); }
 		catch { }
@@ -136,30 +142,206 @@ public sealed class ReviewWindow : BaseWindow
 		row.Add(chip);
 	}
 
-	void BuildFindingsList()
+	void BuildTabs()
 	{
-		_findingsScroll = Layout.Add(new ScrollArea(this), 1);
-		_findingsScroll.Canvas = new Widget(_findingsScroll);
-		_findingsScroll.Canvas.Layout = Layout.Column();
-		_findingsScroll.Canvas.Layout.Margin = 4;
-		_findingsScroll.Canvas.Layout.Spacing = 6;
+		_tabs = new TabWidget(this);
 
-		PopulateFindingsList();
+		var defaultPage = new Widget(_tabs);
+		defaultPage.Layout = Layout.Column();
+		defaultPage.Layout.Margin = 0;
+		defaultPage.Layout.Spacing = 0;
+		_defaultScroll = defaultPage.Layout.Add(new ScrollArea(defaultPage), 1);
+		_defaultScroll.Canvas = new Widget(_defaultScroll);
+		_defaultScroll.Canvas.Layout = Layout.Column();
+		_defaultScroll.Canvas.Layout.Margin = 4;
+		_defaultScroll.Canvas.Layout.Spacing = 8;
+
+		var advancedPage = new Widget(_tabs);
+		advancedPage.Layout = Layout.Column();
+		advancedPage.Layout.Margin = 0;
+		advancedPage.Layout.Spacing = 0;
+		_advancedScroll = advancedPage.Layout.Add(new ScrollArea(advancedPage), 1);
+		_advancedScroll.Canvas = new Widget(_advancedScroll);
+		_advancedScroll.Canvas.Layout = Layout.Column();
+		_advancedScroll.Canvas.Layout.Margin = 4;
+		_advancedScroll.Canvas.Layout.Spacing = 6;
+
+		_tabs.AddPage("Default", "shield", defaultPage);
+		_tabs.AddPage("Advanced", "code", advancedPage);
+		_tabs.StateCookie = "secbox.review-window.tab";
+
+		Layout.Add(_tabs, 1);
+
+		PopulateDefaultList();
+		PopulateAdvancedList();
 	}
 
-	void RebuildFindingsList()
+	void RebuildFindingsLists()
 	{
-		if (_findingsScroll?.Canvas?.Layout == null) return;
-		_findingsScroll.Canvas.Layout.Clear(true);
-		PopulateFindingsList();
+		if (_defaultScroll?.Canvas?.Layout != null)
+		{
+			_defaultScroll.Canvas.Layout.Clear(true);
+			PopulateDefaultList();
+		}
+		if (_advancedScroll?.Canvas?.Layout != null)
+		{
+			_advancedScroll.Canvas.Layout.Clear(true);
+			PopulateAdvancedList();
+		}
 	}
 
-	void PopulateFindingsList()
+	// --------------------------------------------------------------
+	// Default tab: grouped plain-language concerns. Critical first.
+	// --------------------------------------------------------------
+
+	void PopulateDefaultList()
 	{
+		var layout = _defaultScroll.Canvas.Layout;
+
+		if (_findings.Count == 0)
+		{
+			var ok = new Label("No findings. Nothing to review.");
+			ok.SetStyles(CssDefaultBody);
+			ok.WordWrap = true;
+			layout.Add(ok);
+			layout.AddStretchCell();
+			return;
+		}
+
+		// Group by translated title. Group severity = worst observed.
+		var groups = new Dictionary<string, ConcernGroup>(StringComparer.Ordinal);
+		foreach (var f in _findings)
+		{
+			var exp = FindingTranslator.Translate(f.RuleId);
+			if (!groups.TryGetValue(exp.Title, out var g))
+			{
+				g = new ConcernGroup { Explanation = exp };
+				groups[exp.Title] = g;
+			}
+			g.Findings.Add(f);
+			if (f.Severity > g.WorstSeverity) g.WorstSeverity = f.Severity;
+		}
+
+		var critCount = _findings.Count(f => f.Severity == Severity.Critical);
+		var highCount = _findings.Count(f => f.Severity == Severity.High);
+		var summary = new Label(BuildSummaryText(critCount, highCount, _findings.Count));
+		summary.SetStyles(CssDefaultBody);
+		summary.WordWrap = true;
+		layout.Add(summary);
+		layout.AddSpacingCell(4);
+
+		var ordered = groups.Values
+			.OrderByDescending(g => g.WorstSeverity)
+			.ThenBy(g => g.Explanation.Title, StringComparer.Ordinal);
+
+		foreach (var g in ordered)
+			layout.Add(BuildConcernCard(g));
+
+		layout.AddStretchCell();
+	}
+
+	static string BuildSummaryText(int crit, int high, int total)
+	{
+		if (crit > 0 && high > 0)
+			return $"This package has {crit} critical and {high} high-severity concern{(crit + high == 1 ? "" : "s")}. Review the items below before granting trust.";
+		if (crit > 0)
+			return $"This package has {crit} critical concern{(crit == 1 ? "" : "s")}. Review carefully before granting trust.";
+		if (high > 0)
+		{
+			var rest = total - high;
+			return $"This package has {high} high-severity concern{(high == 1 ? "" : "s")} and {rest} lower-severity finding{(rest == 1 ? "" : "s")}.";
+		}
+		return $"This package has {total} lower-severity finding{(total == 1 ? "" : "s")}. None are critical.";
+	}
+
+	Widget BuildConcernCard(ConcernGroup g)
+	{
+		var sev = SeverityHex(g.WorstSeverity);
+
+		var card = new Widget();
+		card.Layout = Layout.Column();
+		card.Layout.Spacing = 4;
+		card.Layout.Margin = 0;
+		card.SetStyles(
+			"background-color: #2b2b2f; "
+			+ "border-radius: 4px; "
+			+ $"border-left: 4px solid {sev}; "
+			+ "padding: 10px 12px 10px 14px;");
+
+		var headerRow = card.Layout.AddRow();
+		headerRow.Spacing = 8;
+
+		// SEVERITY tag - text label so colour is not the sole signal.
+		var sevTag = new Label(g.WorstSeverity.ToString().ToUpperInvariant());
+		sevTag.SetStyles($"{CssChipBase} background-color: {sev};");
+		headerRow.Add(sevTag);
+
+		var title = new Label(g.Explanation.Title);
+		title.SetStyles(CssDefaultTitle);
+		title.TextSelectable = true;
+		headerRow.Add(title);
+		headerRow.AddStretchCell();
+
+		var countTag = new Label(g.Findings.Count == 1
+			? "1 finding"
+			: $"{g.Findings.Count} findings");
+		countTag.SetStyles(CssCountTag);
+		headerRow.Add(countTag);
+
+		var plain = new Label(g.Explanation.Plain);
+		plain.SetStyles(CssDefaultBody);
+		plain.WordWrap = true;
+		plain.TextSelectable = true;
+		card.Layout.Add(plain);
+
+		// Up to 3 example locations - keep the card compact. Full list lives
+		// on the Advanced tab.
+		var allDistinct = g.Findings
+			.Where(f => !string.IsNullOrEmpty(f.Location))
+			.Select(f => f.Location)
+			.Distinct(StringComparer.Ordinal)
+			.ToList();
+
+		if (allDistinct.Count > 0)
+		{
+			card.Layout.AddSpacingCell(2);
+			foreach (var loc in allDistinct.Take(3))
+			{
+				var locLabel = new Label("· " + loc);
+				locLabel.SetStyles(CssLocation);
+				locLabel.WordWrap = true;
+				locLabel.TextSelectable = true;
+				card.Layout.Add(locLabel);
+			}
+			if (allDistinct.Count > 3)
+			{
+				var more = new Label($"… and {allDistinct.Count - 3} more - see Advanced tab");
+				more.SetStyles(CssSubtle);
+				card.Layout.Add(more);
+			}
+		}
+
+		return card;
+	}
+
+	sealed class ConcernGroup
+	{
+		public FindingTranslator.Explanation Explanation;
+		public Severity WorstSeverity = Severity.Low;
+		public List<Finding> Findings = new();
+	}
+
+	// --------------------------------------------------------------
+	// Advanced tab: original per-finding card list.
+	// --------------------------------------------------------------
+
+	void PopulateAdvancedList()
+	{
+		var layout = _advancedScroll.Canvas.Layout;
 		var sorted = _findings.OrderByDescending(f => f.Severity).ThenBy(f => f.RuleId);
 		foreach (var f in sorted)
-			_findingsScroll.Canvas.Layout.Add(BuildFindingCard(f));
-		_findingsScroll.Canvas.Layout.AddStretchCell();
+			layout.Add(BuildFindingCard(f));
+		layout.AddStretchCell();
 	}
 
 	Widget BuildFindingCard(Finding f)
@@ -204,11 +386,16 @@ public sealed class ReviewWindow : BaseWindow
 			var hint = new Label("→ " + f.FixHint);
 			hint.SetStyles(CssFixHint);
 			hint.WordWrap = true;
+			hint.TextSelectable = true;
 			card.Layout.Add(hint);
 		}
 
 		return card;
 	}
+
+	// --------------------------------------------------------------
+	// Footer (decision buttons) - unchanged.
+	// --------------------------------------------------------------
 
 	void BuildFooter()
 	{
