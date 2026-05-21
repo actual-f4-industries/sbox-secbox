@@ -28,7 +28,6 @@ public sealed class WelcomeDialogue : BaseWindow
 	Button _btnScan;
 	Checkbox _cbDontShow;
 	bool _scanRunning;
-	bool _scanWasTriggered;
 	Pixmap _logo;
 
 	public Action<WelcomeDialogueResult> Closed;
@@ -182,7 +181,6 @@ public sealed class WelcomeDialogue : BaseWindow
 	{
 		if (_scanRunning) return;
 		_scanRunning = true;
-		_scanWasTriggered = true;
 		_btnScan.Enabled = false;
 		_scanStatus.Text = "Scanning…";
 
@@ -226,7 +224,6 @@ public sealed class WelcomeDialogue : BaseWindow
 			Closed?.Invoke(new WelcomeDialogueResult
 			{
 				DontShowAgainGlobally = _cbDontShow?.Value ?? false,
-				ScanWasTriggered = _scanWasTriggered,
 			});
 		}
 		catch (Exception ex)
@@ -242,13 +239,10 @@ public sealed class WelcomeDialogue : BaseWindow
 		h.SetStyles(CssH2);
 		Layout.Add(h);
 
-		if (body != null)
-		{
-			var p = new Label(body);
-			p.SetStyles(CssBody);
-			p.WordWrap = true;
-			Layout.Add(p);
-		}
+		var p = new Label(body);
+		p.SetStyles(CssBody);
+		p.WordWrap = true;
+		Layout.Add(p);
 	}
 
 	static Pixmap TryLoadLogo()
@@ -261,8 +255,6 @@ public sealed class WelcomeDialogue : BaseWindow
 		}
 
 		var path = Path.Combine(root, "Assets", "Materials", "secbox-logo-transparent.png");
-		DiagnosticsLog.Info($"[secbox] welcome: loading logo from '{path}'");
-
 		if (!File.Exists(path))
 		{
 			DiagnosticsLog.Warn($"[secbox] welcome: logo file not found at '{path}'");
@@ -277,7 +269,6 @@ public sealed class WelcomeDialogue : BaseWindow
 				DiagnosticsLog.Warn($"[secbox] welcome: Pixmap.FromFile returned null for '{path}' (path scheme issue?)");
 				return null;
 			}
-			DiagnosticsLog.Info($"[secbox] welcome: logo loaded ({pixmap.Width}x{pixmap.Height})");
 			return pixmap;
 		}
 		catch (Exception ex)
@@ -287,61 +278,26 @@ public sealed class WelcomeDialogue : BaseWindow
 		}
 	}
 
-	// Locate this library's root via two strategies in order of reliability:
-	//   1. Walk up from typeof(WelcomeDialogue).Assembly.Location until we find
-	//      a secbox.sbproj. Works regardless of how the engine ident-formats
-	//      the local package (FullIdent is "{org}.{ident}#local" — see engine
-	//      Package.Static.cs:FormatIdent — so ident-based filtering is fragile).
-	//   2. Enumerate LibrarySystem.All and pick the one whose RootDirectory
-	//      contains secbox.sbproj. Content-based; survives ident changes.
+	// Enumerate LibrarySystem.All and pick the project whose RootDirectory
+	// contains secbox.sbproj. Content-based — survives the engine's
+	// "{org}.{ident}#local" FullIdent format (Package.Static.cs:FormatIdent).
+	// Assembly.Location is unreliable here: s&box compiles editor adapters
+	// in-memory, so the resulting assembly has no file backing.
 	static string ResolveSecboxLibraryRoot()
 	{
 		try
 		{
-			var asmLoc = typeof(WelcomeDialogue).Assembly.Location;
-			DiagnosticsLog.Trace($"[secbox] welcome: Assembly.Location = '{asmLoc}'");
-			if (!string.IsNullOrEmpty(asmLoc))
-			{
-				var dir = new DirectoryInfo(Path.GetDirectoryName(asmLoc) ?? "");
-				for (int i = 0; i < 12 && dir != null; i++)
-				{
-					if (File.Exists(Path.Combine(dir.FullName, "secbox.sbproj")))
-					{
-						DiagnosticsLog.Info($"[secbox] welcome: library root via Assembly.Location: {dir.FullName}");
-						return dir.FullName;
-					}
-					dir = dir.Parent;
-				}
-			}
-		}
-		catch (Exception ex)
-		{
-			DiagnosticsLog.Warn($"[secbox] welcome: Assembly.Location lookup threw: {ex.Message}");
-		}
-
-		try
-		{
 			var libs = LibrarySystem.All;
-			if (libs != null)
-			{
-				foreach (var lib in libs)
-				{
-					string ident = null, root = null;
-					try
-					{
-						var proj = lib?.Project;
-						ident = proj?.Package?.FullIdent ?? proj?.Package?.Ident;
-						root = proj?.RootDirectory?.FullName;
-					}
-					catch { }
-					DiagnosticsLog.Trace($"[secbox] welcome: library scan ident='{ident}' root='{root}'");
+			if (libs == null) return null;
 
-					if (!string.IsNullOrEmpty(root) && File.Exists(Path.Combine(root, "secbox.sbproj")))
-					{
-						DiagnosticsLog.Info($"[secbox] welcome: library root via LibrarySystem (ident='{ident}'): {root}");
-						return root;
-					}
-				}
+			foreach (var lib in libs)
+			{
+				string root = null;
+				try { root = lib?.Project?.RootDirectory?.FullName; }
+				catch { }
+
+				if (!string.IsNullOrEmpty(root) && File.Exists(Path.Combine(root, "secbox.sbproj")))
+					return root;
 			}
 		}
 		catch (Exception ex)
@@ -378,5 +334,4 @@ public sealed class WelcomeDialogue : BaseWindow
 public sealed class WelcomeDialogueResult
 {
 	public bool DontShowAgainGlobally;
-	public bool ScanWasTriggered;
 }
