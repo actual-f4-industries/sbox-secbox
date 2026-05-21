@@ -22,7 +22,6 @@ public static class WelcomeDialogueTrigger
 
 	static bool _decided;
 	static int _frameCounter;
-	static int _framesWaited;
 
 	[EditorEvent.Frame]
 	public static void OnFrame()
@@ -50,50 +49,34 @@ public static class WelcomeDialogueTrigger
 	// already there if needed; manual re-opens shouldn't change persistence).
 	public static void ShowNow( bool isManualInvocation )
 	{
-		try
+		MainThread.Queue( () =>
 		{
-			MainThread.Queue( () =>
+			try
 			{
-				try
-				{
-					var root = PackageLocator.CurrentProjectRoot();
-					var markerPath = string.IsNullOrEmpty( root ) ? null : MarkerPathFor( root );
-					ShowDialog( markerPath, isManualInvocation );
-				}
-				catch ( Exception ex )
-				{
-					DiagnosticsLog.Error( "[secbox] welcome: manual show failed", ex );
-				}
-			} );
-		}
-		catch ( Exception ex )
-		{
-			DiagnosticsLog.Error( "[secbox] welcome: ShowNow queue failed", ex );
-		}
+				var root = PackageLocator.CurrentProjectRoot();
+				var markerPath = string.IsNullOrEmpty( root ) ? null : MarkerPathFor( root );
+				ShowDialog( markerPath, isManualInvocation );
+			}
+			catch ( Exception ex )
+			{
+				DiagnosticsLog.Error( "[secbox] welcome: manual show failed", ex );
+			}
+		} );
 	}
 
 	static void DecideAndMaybeShow()
 	{
+		// Bail cheap if no project is loaded yet — avoids re-reading config
+		// every tick while the user sits on the project picker.
+		var projectRoot = PackageLocator.CurrentProjectRoot();
+		if ( string.IsNullOrEmpty( projectRoot ) )
+			return;
+
 		var cfg = SecboxConfig.Load();
 		if ( cfg.WelcomeDialogueDismissedGlobally )
 		{
 			_decided = true;
 			DiagnosticsLog.Info( "[secbox] welcome: skipped — globally dismissed" );
-			return;
-		}
-
-		var projectRoot = PackageLocator.CurrentProjectRoot();
-		if ( string.IsNullOrEmpty( projectRoot ) )
-		{
-			// Editor is at the project picker or otherwise has no project
-			// loaded yet. Keep polling, but cap so we stop wasting cycles
-			// if the user genuinely never opens a project this session.
-			// 600 throttled ticks at 8x ≈ several seconds of editor time.
-			if ( ++_framesWaited > 600 )
-			{
-				_decided = true;
-				DiagnosticsLog.Info( "[secbox] welcome: skipped — no project after extended polling" );
-			}
 			return;
 		}
 
