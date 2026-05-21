@@ -99,11 +99,15 @@ public static class BootAudit
 				continue;
 			}
 
-			if (ident.StartsWith("local.secbox", StringComparison.OrdinalIgnoreCase)
-			    || ident.Equals("secbox", StringComparison.OrdinalIgnoreCase)
-			    || ident.StartsWith("secbox.", StringComparison.OrdinalIgnoreCase))
+			// Self-skip is content-based: don't rely on ident shape. Engine's
+			// Package.FormatIdent emits "{org}.{ident}#local" for local packages
+			// (e.g. "f4industries.secbox#local"), which no prefix filter would
+			// reliably catch across forks/renames. The sbproj presence is the
+			// ground truth.
+			if (!string.IsNullOrEmpty(libRootPath)
+			    && System.IO.File.Exists(System.IO.Path.Combine(libRootPath, "secbox.sbproj")))
 			{
-				DiagnosticsLog.Trace($"boot audit: skip secbox-own ident={ident}");
+				DiagnosticsLog.Trace($"boot audit: skip secbox-own ({ident}) at {libRootPath}");
 				skippedSelf++;
 				continue;
 			}
