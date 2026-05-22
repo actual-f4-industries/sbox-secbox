@@ -258,14 +258,12 @@ public sealed class ReviewWindow : BaseWindow
 	{
 		var sev = SeverityHex(g.WorstSeverity);
 
-		var card = new Widget();
-		card.Layout = Layout.Column();
+		var card = new Widget { Layout = Layout.Column() };
 		card.Layout.Spacing = 4;
 		card.Layout.Margin = 0;
 		card.SetStyles(
 			"background-color: #2b2b2f; "
 			+ "border-radius: 4px; "
-			+ $"border-left: 4px solid {sev}; "
 			+ "padding: 10px 12px 10px 14px;");
 
 		var headerRow = card.Layout.AddRow();
@@ -285,7 +283,7 @@ public sealed class ReviewWindow : BaseWindow
 		var countTag = new Label(g.Findings.Count == 1
 			? "1 finding"
 			: $"{g.Findings.Count} findings");
-		countTag.SetStyles(CssCountTag);
+		countTag.SetStyles(CssCountTag + $"border-left: 4px solid {sev};");
 		headerRow.Add(countTag);
 
 		var plain = new Label(g.Explanation.Plain);
@@ -294,8 +292,7 @@ public sealed class ReviewWindow : BaseWindow
 		plain.TextSelectable = true;
 		card.Layout.Add(plain);
 
-		// Up to 3 example locations - keep the card compact. Full list lives
-		// on the Advanced tab.
+		// Up to 3 example locations - keep the card compact. Full list lives on the Advanced tab.
 		var allDistinct = g.Findings
 			.Where(f => !string.IsNullOrEmpty(f.Location))
 			.Select(f => f.Location)
@@ -357,12 +354,13 @@ public sealed class ReviewWindow : BaseWindow
 		card.SetStyles(
 			"background-color: #2b2b2f; "
 			+ "border-radius: 4px; "
-			+ $"border-left: 4px solid {sev}; "
 			+ "padding: 8px 10px 8px 12px;");
 
 		// Compact header line: SEVERITY + ruleId + [finderId], severity tinted.
 		var ruleId = new Label($"{f.Severity.ToString().ToUpperInvariant()}  {f.RuleId}  [{f.FinderId ?? "?"}]");
-		ruleId.SetStyles($"{CssRuleId} color: {sev};");
+		ruleId.SetStyles(
+			$"{CssRuleId} color: {sev};"
+			+ $"border-left: 4px solid {sev};");
 		ruleId.TextSelectable = true;
 		card.Layout.Add(ruleId);
 

@@ -62,6 +62,11 @@ internal static class LibraryDetailPanel
 
 				if ( HasPanel( w ) ) { any = true; continue; }
 
+				// Don't inject into our own detail view. Same content-based
+				// self-detection as BootAudit: sbproj presence is ground truth,
+				// since "{org}.{ident}#local" forms (and forks) defeat prefix filters.
+				if ( IsSecBoxLibrary( ResolveSelected( w ) ) ) continue;
+
 				var detailInstance = w;
 				var panel = new SecboxStatusPanel( detailInstance, () => ResolveSelected( detailInstance ) );
 				w.Layout.Add( panel );
@@ -197,6 +202,18 @@ internal static class LibraryDetailPanel
 			};
 		}
 		catch { return null; }
+	}
+
+	static bool IsSecBoxLibrary( object lib )
+	{
+		if ( lib is not LibraryProject lp ) return false;
+		try
+		{
+			var folder = lp.Project?.RootDirectory?.FullName;
+			if ( string.IsNullOrEmpty( folder ) ) return false;
+			return System.IO.File.Exists( System.IO.Path.Combine( folder, "secbox.sbproj" ) );
+		}
+		catch { return false; }
 	}
 
 	static void ResetState()

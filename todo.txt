@@ -1,13 +1,13 @@
 todo:
  - NEXT VERSION 0Harmony, 2 libraries from Roslyn, 4 libraries from CSOL, 4 libraries of our own (secbox-core, contract, rules, and scanner), and an alert binary dialogue downloads.
- - Optimize asset finding and utilizing system for editor windows.
 
 Quality of Life:
- - Review Page.
-
+ - Review Page Looks Improvements
+ - "Block" needs to be more specific about what that means. Because a "Blocked" Library can still: create new files, open custom editor ui, etc. The only thing blocked (when testing Seam-Less lib) was opening directory.
+ 
 Bug Reports:
  - Editor/UI/ConcernMapper.cs: keys the prefix map with critical.dynamicCode. and critical.rawNetwork., but the back-end rule IDs are critical.dynamic-code.NNN and critical.raw-network.NNN (hyphens, from CriticalPack.cs:21-23). Dynamic-code and raw-network findings currently fall into the "other" bucket in AllowAllDialog. Want me to fix it in the same change?
-
+ - When selecting the "Kill and Delete Library" button, the Library is not deleted.
 
 Maybe Never Address:
  - The badges don't render.
